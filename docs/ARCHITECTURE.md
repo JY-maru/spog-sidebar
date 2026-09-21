@@ -3,10 +3,11 @@
 > [README.md](../README.md)의 요약을 읽고 오면 이해하기 쉽습니다. 아래는
 > `extension/` 소스(파일명·메시지 타입·함수명)를 기준으로 설명합니다.
 
-> **전부 모형(mock)입니다.** 이 문서에 나오는 네 시스템·엔드포인트·데이터는 모두
-> 로컬 모의 서버(`localhost:8081~8086`)를 가리키는 가상의 값이며, 실제 연동 대상은
-> 이 저장소에 포함되어 있지 않습니다. 번들러 설정이 없어 그대로 실행되지도 않습니다.
-> 목적은 구조를 보여주는 것입니다.
+> **전부 모형(mock)이고, 소스는 의사코드입니다.** 이 문서에 나오는 네 시스템·
+> 엔드포인트·데이터는 모두 로컬 모의 서버(`localhost:8081~8086`)를 가리키는 가상의
+> 값이며, 실제 연동 대상은 이 저장소에 포함되어 있지 않습니다. `extension/` 아래
+> 파일들은 흐름과 설계 의도만 남긴 의사코드라 그대로 실행되지 않습니다 — 각 파일은
+> "이 구조가 어떤 문제를 푸는가"를 보여주는 데 필요한 만큼만 담고 있습니다.
 
 ## 파일 네이밍 규칙
 
@@ -82,8 +83,7 @@ Manifest V3 서비스워커는 파일 하나만 등록할 수 있어, `backgroun
 생깁니다.
 
 그래서 `config.ts`만은 import 없이 작성하고 IIFE로 선번들해 동기 로드를 보장합니다.
-타입은 `import`가 필요 없는 `globals.d.ts`의 `declare global`로 공유합니다 — 이 규칙이
-깨지면 증상이 "간헐적으로 `RPA_APP_CONFIG`가 undefined"로 나타나 원인을 찾기 어렵습니다.
+타입은 `import`가 필요 없는 `globals.d.ts`의 `declare global`로 공유합니다.
 
 ## 3. 메시지 버스: 3단 구조
 
@@ -113,10 +113,12 @@ sequenceDiagram
 const originalFetch = window.fetch
 window.fetch = async (...args) => {
   const response = await originalFetch(...args)
-  const url = typeof args[0] === 'string' ? args[0] : args[0]?.url
-  if (url?.includes('/api/case/detail') && response.ok) {
-    const payload = await response.clone().json()
-    window.postMessage({ type: 'INTERCEPTED_CASE', payload: extractCaseFields(payload), __spogToken: RPA_MSG_TOKEN }, '*')
+  if (isCaseDetail(urlOf(args)) && response.ok) {
+    const payload = await response.clone().json()   // clone — 페이지 쪽 소비를 방해하지 않는다
+    window.postMessage({
+      type: 'INTERCEPTED_CASE',
+      payload: pickNeededFields(payload),           // 필요한 필드만 넘긴다
+    }, location.origin)                             // 와일드카드 대신 자기 오리진으로 한정
   }
   return response
 }
@@ -126,11 +128,11 @@ window.fetch = async (...args) => {
 
 ```js
 // message_router.ts
-function getEmbedFormData(kind) {
+function requestFromEmbedFrame(kind, timeoutMs) {
   return new Promise((resolve) => {
-    const timer = setTimeout(() => { cleanup(); resolve(null) }, RPA_APP_CONFIG.TIMEOUT.ELEMENT_DEFAULT)
+    const timer = setTimeout(() => { cleanup(); resolve(null) }, timeoutMs)
     function onMessage(event) {
-      if (!validatePostOrigin(event, 'embed-sandbox')) return
+      if (!isAllowedOrigin(event.origin, 'embed-sandbox')) return
       const msg = event.data
       if (msg?.type === 'RESPONSE_DATA' && msg.kind === kind) {
         clearTimeout(timer); cleanup(); resolve(msg.payload)
@@ -159,10 +161,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 ```js
 // message_router.ts
-registerRuntimeHandler('INTERCEPTED_CASE', (m) => !!m.caseId, handleInterceptedCase)
+register('INTERCEPTED_CASE', CaseSchema, handleInterceptedCase)
 ```
 
-> `service_worker.ts`는 타입별 개별 `addListener` 방식이고 `message_router.ts`는 스키마+오리진+타임아웃 가드를 갖춘 레지스트리입니다 — 두 계층의 분배 스타일이 다른 점은 개선 여지가 있습니다(§9).
+> `service_worker.ts`는 시스템 간 중계를, `message_router.ts`는 스키마·오리진·타임아웃 가드를 담당합니다 — 두 계층의 책임이 다르므로 분배 방식도 다릅니다.
 
 ## 4. 상태 관리: 2단 상태 설계
 
@@ -184,17 +186,14 @@ export const legacyStateManager = {
 
 ```js
 // background/service_worker.ts — find-or-create-tab 패턴
-function runOnHost(pattern, entryUrl, message, focus) {
-  chrome.tabs.query({ url: pattern }, (tabs) => {
-    if (tabs.length > 0) {
-      if (focus) chrome.tabs.update(tabs[0].id, { active: true }, () => chrome.tabs.sendMessage(tabs[0].id, message))
-      else chrome.tabs.sendMessage(tabs[0].id, message)
-      return
-    }
-    chrome.tabs.create({ url: entryUrl, active: !!focus }, (newTab) => {
-      // 탭 로드 완료 후 초기화 스크립트가 붙을 시간을 살짝 기다렸다가 메시지 전송
-    })
-  })
+function runOnSystem(system, command) {
+  const tab = findTab(system)
+  if (tab) {
+    focus(tab)                                   // 처리 과정을 사용자에게 보여준다
+    relayOrRecover(tab, command, LABEL[system])  // 실패하면 새로고침 + 사이드바에 알림
+    return
+  }
+  openTab(system, () => relay(findTab(system), command)) // 로드 완료를 기다렸다 전송
 }
 ```
 
@@ -260,18 +259,17 @@ sequenceDiagram
 | 상태 스토어의 화이트리스트 가드 | TS 없이도 오타로 인한 "조용한 실패"를 콘솔 경고로 드러냄 |
 | 백그라운드가 진행 상태를 재broadcast | MV3 서비스워커 재시작을 전제로, UI가 "다시 물어서" 복구 |
 | 순수 도메인 로직을 DOM 파서와 분리 | 거리/스코어링 로직이 DOM 없이도 테스트 가능해야 한다는 원칙 |
-| `runOnHost`를 항상 `focus:true`로 호출 | 자동 연쇄까지도 탭 전환으로 보여주는 게 시스템 통합을 드러내는 데 중요 |
+| 대상 탭을 항상 전면으로 가져와 처리 | 자동 연쇄까지도 탭 전환으로 보여주는 게 시스템 통합을 드러내는 데 중요 |
 | 후보 검색: 잠금 대신 세대(generation) 카운터 | 응답 대기 중 다음 요청이 가면 이전 응답은 이미 쓸모없어짐 — 잠그는 대신 세대 번호로 오래된 응답을 가려냄 |
 | 게시판 쓰기를 허브 경유 강제 + 쓰기 세대 카운터 | 직접 쓰기 구조에선 배경 폴링과의 순서 보장이 불가능 — 쓰기 시작마다 세대 번호를 올려 그 이전 폴링 응답을 무효화 |
 | 추적 목록은 "스코프 한정 병합"으로 갱신 | 서로 다른 스캔 결과가 상대의 발견을 지워버리지 않도록, 실제로 훑은 범위 밖은 건드리지 않음 |
 
-## 9. 알려진 한계
+## 9. 이 저장소의 범위
 
-- **디스패치 스타일이 계층별로 다름** — `service_worker.ts`는 타입별 개별 리스너, `message_router.ts`는 타입드 registry.
-- **모듈 로딩이 전역 네임스페이스 기반** — `window.SPOG_*`/`window.Panels`, 로드 순서를 `manifest.json` 배열에 의존.
-- **`Panels` 네임스페이스가 암묵적으로 합성됨** — 로드 순서가 깨지면 특정 액션이 조용히 `undefined`.
-- **자동화 테스트 부재** — 순수 함수로 분리된 부분(`candidate_search.js` 등)부터 붙이기 좋음.
-- **요청-ID 없는 iframe 브리지** — 동시 다발 요청이 필요해지면 상관관계 ID 추가 필요.
+- **의사코드** — `extension/` 아래 파일은 흐름과 설계 의도만 담고 있어 그대로 실행되지 않습니다. 구현 본문은 주석으로 대체했습니다.
+- **모듈 로딩** — 레거시 스크립트는 전역 네임스페이스를 통해 서로를 참조하고, 로드 순서는 `manifest.json` 배열이 정합니다. 실제 배포에서는 번들러가 이 순서를 고정합니다.
+- **테스트** — 의사코드라 실행 테스트가 없습니다. 실제 구현으로 옮긴다면 DOM에 의존하지 않는 부분(`candidate_search.js`의 거리·스코어링)이 먼저 테스트 대상이 됩니다.
+- **임베드 브리지** — 동시 1건 대기를 전제로 한 단순화입니다. 동시 다발 요청이 필요한 환경이라면 상관관계 ID를 도입하는 설계가 됩니다.
 
 ## 데모 시나리오
 

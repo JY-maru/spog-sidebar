@@ -53,6 +53,30 @@ for path, needle in [("README.md", "모형(mock)"),
     if needle not in pathlib.Path(path).read_text(encoding="utf-8"):
         fails.append(f"{path}: missing mock notice")
 
+
+# 6. 주석 스타일 — 회고형 서술과 취약점 힌트는 공개 저장소에 남기지 않는다.
+#    회고형: 개발 과정을 서사로 적은 것 ("예전엔", "버그가 났었다", "두 번 끊겼다")
+#    취약점 힌트: 가드가 없을 때 무엇이 뚫리는지, 어떻게 우회하는지 적은 것
+RETROSPECTIVE = ["예전엔", "예전 방식", "원래는", "과거엔", "과거 이", "이전에는", "했었",
+                 "버그가 났", "버그가 여기서", "폐기됨", "1차 증상", "끊겼던",
+                 "가장 까다로웠", "여러 라운드", "삽질", "war story"]
+SECURITY_HINT = ["우회하면", "우회해서", "뚫린", "뚫을", "공격자", "해킹", "익스플로잇",
+                 "검증을 빠뜨", "구멍이었", "안 막으면", "막지 않으면", "없으면 통과",
+                 "바이패스", "bypass"]
+
+for p_ in code_files:
+    body = p_.read_text(encoding="utf-8")
+    for i, line in enumerate(body.splitlines(), 1):
+        stripped = line.strip()
+        if not (stripped.startswith("//") or stripped.startswith("*") or stripped.startswith("#")):
+            continue
+        for phrase in RETROSPECTIVE:
+            if phrase in line:
+                fails.append(f"{p_}:{i} 회고형 주석 ({phrase!r})")
+        for phrase in SECURITY_HINT:
+            if phrase in line:
+                fails.append(f"{p_}:{i} 취약점 힌트 주석 ({phrase!r})")
+
 print(f"checks run. failures: {len(fails)}")
 for f in fails:
     print("  FAIL", f)

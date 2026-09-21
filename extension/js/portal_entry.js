@@ -1,26 +1,20 @@
 // portal_entry.js
-// [MOCK] 포털 콘텐츠 스크립트 — 진입 조건 판단 후
-// MessageRouter/UiController 초기화만 수행한다. 실제 로직은 전부
-// message_router.ts / ui_controller.js에 위임되어 있다.
+// [의사코드] 포털 페이지 진입점. 하는 일은 "초기화 순서 보장" 하나뿐이다.
+//
+// 흐름: 사이드바를 띄울 화면인지 판단 → 메시지 버스 먼저 → UI 셸 나중에.
+// 수신 준비가 끝난 뒤에 UI를 올린다는 순서 규칙만 지키면 된다.
 
-const _currentUrl = decodeURIComponent(window.location.href);
-const _isTopWindow = window.self === window.top;
+function init() {
+  if (!isSidebarTarget(location)) return; // 사이드바를 붙일 화면이 아니면 아무것도 안 함
 
-if (_isTopWindow && _currentUrl.includes('/case/intake')) {
-  console.log('[SPoG:PortalA] 접수 페이지 감지 완료. 초기화합니다.');
-
-  // [자가복구] 스크립트 로드 순서상 ui_controller.js가 이 파일보다 먼저 실행되므로
-  // window.UiController는 이 시점에 이미 존재해야 정상이다. 그런데도 비어있다면
-  // 확장 컨텍스트가 깨진 상태(원인 불명 레이스) — 세션당 1회 자동 새로고침으로
-  // 자가복구를 시도하고, 그래도 안 되면 무한루프 대신 에러만 남긴다.
-  if (!window.UiController) {
-    console.error('[SPoG:PortalA] window.UiController 초기화 실패 — 확장 컨텍스트 이상');
-    if (!sessionStorage.getItem('SPOG_UICTRL_RECOVERY')) {
-      sessionStorage.setItem('SPOG_UICTRL_RECOVERY', '1');
-      location.reload();
-    }
-  } else {
-    MessageRouter.init();
-    setTimeout(() => UiController.init(), RPA_APP_CONFIG.TIMEOUT.WIDGET_INJECT);
-  }
+  MessageRouter.init();                   // 1) 수신 준비 (스키마·오리진 가드 등록)
+  setTimeout(() => UiController.init(),    // 2) 위젯 주입 후 셸 마운트
+            RPA_APP_CONFIG.TIMEOUT.WIDGET_INJECT);
 }
+
+function isSidebarTarget(loc) {
+  // 포털의 특정 업무 화면에서만 사이드바를 띄운다 (경로 패턴 판단)
+  return /* 경로 패턴 일치 */ true;
+}
+
+init();

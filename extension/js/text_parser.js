@@ -1,48 +1,33 @@
 // text_parser.js
-// [MOCK] 비정형 접수양식 텍스트 → 구조화 필드 파싱. 상담원이 받아
-// 적은 그대로("- 라벨 : 값" 또는 "1) 라벨 : 값" 등 표기가 제각각인 텍스트)를
-// 그대로 붙여넣을 수 있도록, 라벨 "텍스트"를 기준으로 매핑하고 순서/공백에
-// 관대하게 파싱한다. 고객 응대 시스템의 상담이력 원문 파싱에도 재사용된다.
+// [의사코드] 받아 적은 접수양식 텍스트 → 구조화 필드.
+//
+// 이 파일이 보여주는 것: 입력 형식을 강제하지 않는 파싱.
+// 줄 순서·공백·구분자(: 또는 -)가 달라도 라벨 텍스트로 찾는다.
 
-// 이 라벨들이 전부 있어야 "접수양식"으로 인정한다(아니면 그냥 일반 메모 텍스트로
-// 보고 null 반환 — 잘못된 자동화 트리거를 막기 위한 최소 방어).
-const REQUIRED_LABELS = ['예약번호', '자산번호', '보험사', '신고자', '운전자', '사고시각', '사고장소'];
+const LABELS = {
+  customerName: ['고객명', '성명', '이름'],
+  phone:        ['연락처', '전화', '휴대폰'],
+  resourceCode: ['식별코드', '차량번호', '차번'],
+  receivedAt:   ['접수일시', '접수시각'],
+  location:     ['위치', '장소'],
+  detail:       ['상세내용', '내용', '비고'],
+};
 
-function parseIntakeTemplate(rawText) {
-  if (!rawText || typeof rawText !== 'string') return null;
-  for (const label of REQUIRED_LABELS) {
-    if (!rawText.includes(label)) return null;
-  }
-
+function parseIntakeText(raw) {
   const fields = {};
-  rawText.split(/\r?\n/).forEach((line) => {
-    // "- 라벨 : 값" / "1) 라벨 : 값" / "라벨: 값" 등 다양한 표기를 한 정규식으로 흡수.
-    // 콜론(반각/전각 모두) 좌측을 라벨, 우측을 값으로 취급 — 순서가 뒤바뀌어도,
-    // 앞에 불릿/번호가 붙어도 안전하게 매칭된다.
-    const m = line.match(/^\s*(?:[-*]|\d+\))?\s*([가-힣A-Za-z0-9()/·\s]+?)\s*[:：]\s*(.*)$/);
-    if (m) {
-      const label = m[1].trim();
-      const value = m[2].trim();
-      if (label) fields[label] = value;
-    }
-  });
+  for (const line of raw.split('\n')) {
+    const [label, value] = splitLabelAndValue(line); // ':' 또는 '-' 기준, 없으면 스킵
+    const key = matchLabel(label);                    // 동의어 목록에서 찾는다
+    if (key && value) fields[key] = normalize(key, value);
+  }
   return fields;
 }
 
-// 라벨 딕셔너리 → 콘텐츠 스크립트가 쓰는 필드명으로 변환 (동의어 흡수 포함)
-const LABEL_ALIASES = {
-  예약번호: 'resId', 자산번호: 'resourceId', 보험사: 'insuranceCompany',
-  신고자: 'reporterName', '신고자 연락처': 'reporterPhone',
-  운전자: 'driverName', '운전자 연락처': 'driverPhone',
-  사고시각: 'accidentAt', 사고장소: 'location',
-};
-function normalizeFields(rawFields) {
-  const out = {};
-  for (const [label, value] of Object.entries(rawFields)) {
-    const key = LABEL_ALIASES[label] || label;
-    out[key] = value;
-  }
-  return out;
-}
+// 값 정규화는 필드별로 다르다 — 전화번호는 하이픈 통일, 일시는 포맷 통일 등.
+function normalize(key, value) { /* … */ return value.trim(); }
 
-window.TextParser = { parseIntakeTemplate, normalizeFields };
+// 필수 항목이 없으면 자동화를 시작하지 않는다. 시스템 간 공유 트랜잭션이 없어
+// 중간 단계만 반영된 상태를 되돌릴 수 없기 때문에, 시작 조건을 먼저 확인한다.
+function isEnoughToSubmit(fields) {
+  return !!(fields.customerName && fields.resourceCode);
+}
