@@ -6,7 +6,7 @@
 // 후처리 규칙이 평소와 동일하게 적용된다.
 
 // 메인 월드 인터셉터를 주입한다 — 격리 월드는 페이지의 fetch를 볼 수 없다.
-injectScript('js/case_system_interceptor.ts');
+injectScript('src/case_system_interceptor.ts');
 
 // ── 명령 수신 ──────────────────────────────────────────────────
 onCommand('DO_CREATE_CASE', async ({ fields }) => {

@@ -61,7 +61,7 @@
 | Parsers | `dom_parser.ts` | TS | 다른 시스템의 HTML 표를 헤더 텍스트로 동적 매핑 |
 | Domain engine | `candidate_search.ts` | TS | 거리 계산·후보 필터링·스코어링만 담당하는 순수 함수(DOM 비의존) |
 | Bridge / Bus | `message_router.ts` | TS + zod | 타입드 메시지 레지스트리 — 스키마·오리진·타임아웃 가드를 한 곳에서 담당 |
-| Panels | `js/panels/*.tsx` (6개) | TS + React + Zustand | 패널별 컴포넌트 + 전용 로컬 스토어 |
+| Panels | `src/panels/*.tsx` (6개) | TS + React + Zustand | 패널별 컴포넌트 + 전용 로컬 스토어 |
 | UI 셸 | `ui_controller.ts` | TS | 인터럽트 vs 앰비언트 판단, MV3 재시작 복구 — React로 안 옮겨진 레거시 코어 |
 | Entry point | `portal_entry.ts` | TS | `MessageRouter.init()` → `UiController.init()` 순서로 초기화만 수행 |
 

@@ -5,7 +5,7 @@
 // 잠금 대신 세대(generation) 카운터를 쓴다. 불변식: 화면에 남는 것은 항상
 // 마지막 요청의 결과다.
 
-injectScript('js/dispatch_system_interceptor.ts');
+injectScript('src/dispatch_system_interceptor.ts');
 
 let searchGeneration = 0;
 

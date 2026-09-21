@@ -85,9 +85,10 @@
 extension/
   manifest.json                     MV3 매니페스트 (모의 서버 호스트만 등록)
   background/service_worker.ts      백그라운드 허브 — 탭 오케스트레이션·중앙 폴링
-  js/
+  src/
     config.ts                       공유 상수 + 전역 유틸 (import 없이 선번들)
     globals.d.ts                    레거시 전역들의 타입 선언
+    pseudocode.d.ts                 의사코드에서 호출부만 남은 헬퍼 시그니처
     portal_entry.ts                 포털 진입점 — 초기화 순서만 담당
     ui_controller.ts                사이드바 셸 — 패널 전환·토스트·복구
     message_router.ts               메시지 허브 — 스키마·오리진·타임아웃 가드

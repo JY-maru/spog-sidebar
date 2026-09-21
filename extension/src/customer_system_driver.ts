@@ -4,7 +4,7 @@
 // 이 파일이 보여주는 것: "사용자가 아무것도 누르지 않는 자동 연계".
 // 예약이 생성되면 허브가 이 탭을 대신 방문해 응대 메모까지 채운다.
 
-injectScript('js/customer_system_interceptor.ts');
+injectScript('src/customer_system_interceptor.ts');
 
 // 허브가 자동 연쇄로 보낸 명령 — 사용자 클릭이 없다.
 onCommand<ReservationMemo>('DO_APPLY_RESERVATION_TO_MEMO', async (msg) => {
