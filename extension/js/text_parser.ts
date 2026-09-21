@@ -1,4 +1,4 @@
-// text_parser.js
+// text_parser.ts
 // [의사코드] 받아 적은 접수양식 텍스트 → 구조화 필드.
 //
 // 이 파일이 보여주는 것: 입력 형식을 강제하지 않는 파싱.
@@ -13,8 +13,8 @@ const LABELS = {
   detail:       ['상세내용', '내용', '비고'],
 };
 
-function parseIntakeText(raw) {
-  const fields = {};
+function parseIntakeText(raw: string): Fields {
+  const fields: Fields = {};
   for (const line of raw.split('\n')) {
     const [label, value] = splitLabelAndValue(line); // ':' 또는 '-' 기준, 없으면 스킵
     const key = matchLabel(label);                    // 동의어 목록에서 찾는다
@@ -24,10 +24,15 @@ function parseIntakeText(raw) {
 }
 
 // 값 정규화는 필드별로 다르다 — 전화번호는 하이픈 통일, 일시는 포맷 통일 등.
-function normalize(key, value) { /* … */ return value.trim(); }
+function normalize(key: string, value: string): string { /* … */ return value.trim(); }
 
 // 필수 항목이 없으면 자동화를 시작하지 않는다. 시스템 간 공유 트랜잭션이 없어
 // 중간 단계만 반영된 상태를 되돌릴 수 없기 때문에, 시작 조건을 먼저 확인한다.
-function isEnoughToSubmit(fields) {
+function isEnoughToSubmit(fields: Fields): boolean {
   return !!(fields.customerName && fields.resourceCode);
 }
+
+type Fields = Partial<Record<keyof typeof LABELS, string>>;
+
+declare function splitLabelAndValue(line: string): [string, string];
+declare function matchLabel(label: string): keyof typeof LABELS | undefined;

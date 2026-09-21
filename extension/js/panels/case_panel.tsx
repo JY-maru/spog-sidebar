@@ -15,7 +15,7 @@ async function onCreateClick() {
   const raw = await requestFromEmbedFrame('intake_text');  // 포털의 임베드 폼에서 원문 읽기
   const fields = TextParser.parse(raw);
 
-  // 필수 항목이 없으면 시작하지 않는다(text_parser.js의 시작 조건과 동일).
+  // 필수 항목이 없으면 시작하지 않는다(text_parser.ts의 시작 조건과 동일).
   if (!TextParser.isEnoughToSubmit(fields)) return toast('접수양식을 먼저 채워주세요.', 'warning');
 
   UiController.updateStatus('케이스 관리 시스템으로 이동해 접수 카드를 생성합니다...');

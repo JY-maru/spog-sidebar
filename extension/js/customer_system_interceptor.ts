@@ -1,4 +1,4 @@
-// customer_system_interceptor.js
+// customer_system_interceptor.ts
 // [의사코드] 고객 응대 시스템 페이지의 메인 월드 인터셉터.
 //
 // 이 시스템은 인바운드 문의를 주기적으로 폴링한다. 확장은 폴링을 추가하지 않고,

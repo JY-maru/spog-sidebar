@@ -1,11 +1,11 @@
-// dispatch_system_driver.js
+// dispatch_system_driver.ts
 // [의사코드] 예약·배차 시스템 페이지 자동화.
 //
 // 이 파일이 보여주는 것: "여러 번 눌러도 화면이 꼬이지 않는 자동화".
 // 잠금 대신 세대(generation) 카운터를 쓴다. 불변식: 화면에 남는 것은 항상
 // 마지막 요청의 결과다.
 
-injectScript('js/dispatch_system_interceptor.js');
+injectScript('js/dispatch_system_interceptor.ts');
 
 let searchGeneration = 0;
 
@@ -38,8 +38,16 @@ onCommand('DO_CREATE_RESERVATION_BLOCK', async (req) => {
 });
 
 // ── 화면 구조 변화에 견디는 표 읽기 ────────────────────────────
-// 컬럼 순서가 아니라 헤더 텍스트로 열을 찾는다(dom_parser.js에 위임).
-async function scanTable(scope) {
+// 컬럼 순서가 아니라 헤더 텍스트로 열을 찾는다(dom_parser.ts에 위임).
+async function scanTable(scope: string): Promise<Row[]> {
   await waitForElement('.list-table tbody tr', RPA_APP_CONFIG.TIMEOUT.ELEMENT_LONG);
-  return DomParser.parseTable(document.querySelector('.list-table'));
+  return DomParser.parseTable(document.querySelector('.list-table')!);
 }
+
+type Row = Record<string, string | undefined>;
+
+declare const DomParser: { parseTable(table: Element): Row[] };
+declare const CandidateSearch: { rank(session: unknown): Row[] };
+declare const collected: unknown;
+declare function expandingScopes(req: unknown): Iterable<string>;
+declare function rescanForBlock(key: string): Promise<Row | null>;

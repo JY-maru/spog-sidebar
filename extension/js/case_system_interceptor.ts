@@ -1,4 +1,4 @@
-// case_system_interceptor.js
+// case_system_interceptor.ts
 // [의사코드] 케이스 관리 시스템 페이지의 메인 월드에서 실행된다.
 //
 // 격리 월드의 콘텐츠 스크립트는 페이지 자신의 fetch를 볼 수 없다. 메인 월드에서

@@ -26,3 +26,8 @@ export function scopedMergeById(found: Block[], scannedIds: Set<string>) {
 }
 
 interface Block { id: string; scanScopeId: string; label: string }
+
+declare function current(): Block[];
+declare function setBlocks(blocks: Block[]): void;
+declare function upsert(list: Block[], block: Block): void;
+declare function isTombstonedAsRemoved(id: string): boolean;

@@ -5,6 +5,8 @@
 // 콘텐츠 스크립트는 호출부를 그대로 둔다. 이관된 패널은 훅으로, 그렇지 않은
 // 코드는 이 파사드로 같은 스토어를 본다.
 
+import { sharedStore, type StateKey } from './store';
+
 export const legacyStateManager = {
   get(key: string) { guard(key); return sharedStore.getState()[key as StateKey]; },
   set(key: string, value: unknown) { guard(key); sharedStore.setState({ [key]: value }); },

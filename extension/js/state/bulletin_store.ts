@@ -30,3 +30,7 @@ export async function togglePin(id: string, pinned: boolean) {
 
 // 본문은 세부창을 열 때만 가져온다.
 export async function fetchBulletinDetail(id: string) { /* 허브에 GET_BULLETIN_DETAIL 요청 */ }
+
+declare function snapshot(): Bulletin[];
+declare function restore(list: Bulletin[]): void;
+declare function apply(patch: { id: string; pinned: boolean }): void;

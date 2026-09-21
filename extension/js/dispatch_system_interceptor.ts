@@ -1,6 +1,6 @@
-// dispatch_system_interceptor.js
+// dispatch_system_interceptor.ts
 // [의사코드] 예약·배차 시스템 페이지의 메인 월드 인터셉터.
-// 역할은 case_system_interceptor.js와 같다 — 응답을 읽어 격리 월드로 넘기기만 한다.
+// 역할은 case_system_interceptor.ts와 같다 — 응답을 읽어 격리 월드로 넘기기만 한다.
 //
 // 이 시스템은 목록 조회를 XHR로도 보내므로 fetch와 XHR 둘 다 감싼다.
 

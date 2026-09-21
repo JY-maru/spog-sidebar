@@ -25,4 +25,4 @@ function run(type: string) {
 }
 
 // 후보 검색을 빠르게 두 번 눌러도 표에는 마지막 요청 결과만 남는다
-// (세대 카운터는 dispatch_system_driver.js에 있다).
+// (세대 카운터는 dispatch_system_driver.ts에 있다).

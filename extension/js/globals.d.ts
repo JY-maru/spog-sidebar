@@ -25,7 +25,7 @@ declare global {
     /** message_router.ts가 등록하는 메시지 허브 파사드 */
     MessageRouter: { init(): void };
 
-    /** ui_controller.js가 등록하는 UI 셸 */
+    /** ui_controller.ts가 등록하는 UI 셸 */
     UiController: { init(): void };
 
     /** 패널 모듈들이 로드 순서대로 합성하는 네임스페이스 */

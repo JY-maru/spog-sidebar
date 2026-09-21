@@ -1,4 +1,4 @@
-// dom_parser.js
+// dom_parser.ts
 // [의사코드] 다른 시스템의 HTML 표 → 객체 배열.
 //
 // 이 파일이 보여주는 것: 위치가 아니라 의미로 읽는 표 파싱.
@@ -12,7 +12,7 @@ const COLUMN_LABELS = {
   status:        ['상태'],
 };
 
-function parseTable(table) {
+function parseTable(table: Element): Row[] {
   const index = buildHeaderIndex(table);  // 헤더 텍스트 → 컬럼 위치
   return [...table.querySelectorAll('tbody tr')]
     .filter((tr) => !isEmptyMessageRow(tr)) // "데이터 없음" 행은 결과가 아니다
@@ -20,8 +20,8 @@ function parseTable(table) {
 }
 
 // 헤더에서 찾지 못한 컬럼은 undefined로 남긴다. 추측해서 채우지 않는다.
-function buildHeaderIndex(table) {
-  const index = {};
+function buildHeaderIndex(table: Element): HeaderIndex {
+  const index: HeaderIndex = {};
   [...table.querySelectorAll('thead th')].forEach((th, i) => {
     const key = matchColumn(th.textContent);
     if (key) index[key] = i;
@@ -29,9 +29,15 @@ function buildHeaderIndex(table) {
   return index;
 }
 
-function readRow(tr, index) {
+function readRow(tr: Element, index: HeaderIndex): Row {
   const cells = tr.querySelectorAll('td');
-  const row = {};
-  for (const [key, i] of Object.entries(index)) row[key] = cells[i]?.textContent.trim();
+  const row: Row = {};
+  for (const [key, i] of Object.entries(index)) row[key] = cells[i]?.textContent?.trim();
   return row;
 }
+
+type Row = Record<string, string | undefined>;
+type HeaderIndex = Record<string, number>;
+
+declare function matchColumn(text: string | null): string | undefined;
+declare function isEmptyMessageRow(tr: Element): boolean;

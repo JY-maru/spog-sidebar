@@ -15,9 +15,9 @@
 
 | 접미사 | 실행 위치 | 역할 |
 |---|---|---|
-| `*_system_driver.js` | 대상 페이지의 격리 월드(isolated world) | 폼을 채우고 버튼을 누르는 자동화 |
-| `*_system_interceptor.js` | 대상 페이지의 메인 월드(MAIN world) | 페이지 자신의 `fetch` 응답만 가로채 릴레이 |
-| `portal_entry.js` | 포털 페이지 | 초기화 순서만 담당하는 진입점 |
+| `*_system_driver.ts` | 대상 페이지의 격리 월드(isolated world) | 폼을 채우고 버튼을 누르는 자동화 |
+| `*_system_interceptor.ts` | 대상 페이지의 메인 월드(MAIN world) | 페이지 자신의 `fetch` 응답만 가로채 릴레이 |
+| `portal_entry.ts` | 포털 페이지 | 초기화 순서만 담당하는 진입점 |
 | `config.ts` / `globals.d.ts` | 공용 | 공유 상수·유틸과 그 전역 타입 선언 |
 
 `case` / `dispatch` / `customer` 접두사가 각각 케이스 관리·예약·배차·고객 응대
@@ -35,7 +35,7 @@
 
 | 레이어 | 파일 | 스택 | 이유 |
 |---|---|---|---|
-| 제3자 페이지 자동화 | `case/dispatch/customer_system_driver.js` | 순수 JavaScript | 대상 페이지 안에 주입되는 코드라 프레임워크를 못 씀 |
+| 제3자 페이지 자동화 | `case/dispatch/customer_system_driver.ts` | TypeScript (프레임워크 없음) | 대상 페이지 안에 주입되는 코드라 UI 프레임워크를 못 씀 — 타입만 가져간다 |
 | 백그라운드 허브 | `background/service_worker.ts` | TypeScript | 메시지 타입·탭 오케스트레이션이 늘어나 타입 검사가 필요해진 레이어 |
 | 사이드바 UI | `panels/*.tsx` | React 19 + TypeScript | 패널별 로컬 상태·리렌더링 관리 |
 | 공유 상태 | `state/store.ts` | Zustand 5 | 여러 패널이 구독하는 전역 상태, `subscribe()` 지원 |
@@ -43,7 +43,7 @@
 | 게시판 상태 | `state/bulletin_store.ts` | Zustand 5 | 낙관적 업데이트 + 실패 시 롤백, 본문 온디맨드 조회 |
 | 레거시 호환 파사드 | `state/legacy_adapter.ts` | TypeScript | 기존 호출부가 옛 `window.StateManager.get/set` API를 그대로 쓸 수 있게 함 |
 | 메시지 검증 | `message_router.ts` | TypeScript + zod | 메시지 타입별 스키마 검증 + 3단계 오리진 검증(self/embed-sandbox/trusted-list) |
-| 백엔드(경량) | `backend/mock_sidebar_webhook.js` | 순수 JavaScript | 스프레드시트+스크립트 런타임(Apps Script류) 흉내 — 목록/본문 이중 캐시, 멱등 쓰기 핸들러 |
+| 백엔드(경량) | `backend/mock_sidebar_webhook.ts` | TypeScript | 스프레드시트+스크립트 런타임 흉내 — 목록/본문 이중 캐시, 멱등 쓰기 핸들러 |
 
 ## 2. 모듈 구조 (포털 탭 기준)
 
@@ -57,13 +57,13 @@
 | State (호환 파사드) | `state/legacy_adapter.ts` | TS | 구버전 API를 재현해 기존 호출부를 안 건드림 |
 | State (배선) | `state/index.ts` | TS | `window.StateManager`/`window.ResourceStore` 전역 등록 |
 | State (훅) | `state/hooks.ts` | TS + React | `useSharedStore` — 패널이 공유 스토어를 구독하는 훅 |
-| Parsers | `text_parser.js` | JS | 비정형 접수양식 텍스트를 라벨 매칭으로 구조화 필드로 변환 |
-| Parsers | `dom_parser.js` | JS | 다른 시스템의 HTML 표를 헤더 텍스트로 동적 매핑 |
-| Domain engine | `candidate_search.js` | JS | 거리 계산·후보 필터링·스코어링만 담당하는 순수 함수(DOM 비의존) |
+| Parsers | `text_parser.ts` | TS | 비정형 접수양식 텍스트를 라벨 매칭으로 구조화 필드로 변환 |
+| Parsers | `dom_parser.ts` | TS | 다른 시스템의 HTML 표를 헤더 텍스트로 동적 매핑 |
+| Domain engine | `candidate_search.ts` | TS | 거리 계산·후보 필터링·스코어링만 담당하는 순수 함수(DOM 비의존) |
 | Bridge / Bus | `message_router.ts` | TS + zod | 타입드 메시지 레지스트리 — 스키마·오리진·타임아웃 가드를 한 곳에서 담당 |
 | Panels | `js/panels/*.tsx` (6개) | TS + React + Zustand | 패널별 컴포넌트 + 전용 로컬 스토어 |
-| UI 셸 | `ui_controller.js` | JS | 인터럽트 vs 앰비언트 판단, MV3 재시작 복구 — React로 안 옮겨진 레거시 코어 |
-| Entry point | `portal_entry.js` | JS | `MessageRouter.init()` → `UiController.init()` 순서로 초기화만 수행 |
+| UI 셸 | `ui_controller.ts` | TS | 인터럽트 vs 앰비언트 판단, MV3 재시작 복구 — React로 안 옮겨진 레거시 코어 |
+| Entry point | `portal_entry.ts` | TS | `MessageRouter.init()` → `UiController.init()` 순서로 초기화만 수행 |
 
 ```
 config → state/store → state/legacy_adapter → state/index
@@ -92,8 +92,8 @@ Manifest V3 서비스워커는 파일 하나만 등록할 수 있어, `backgroun
 ```mermaid
 sequenceDiagram
     participant Page as 사고 관리 시스템 페이지 자신의 fetch
-    participant Inject as case_system_interceptor.js (page context)
-    participant Content as case_system_driver.js (격리 world)
+    participant Inject as case_system_interceptor.ts (page context)
+    participant Content as case_system_driver.ts (격리 world)
     participant BG as service_worker.ts (허브)
     participant Router as message_router.ts (포털)
     participant Iframe as 임베드 폼(iframe)
@@ -109,7 +109,7 @@ sequenceDiagram
 **3-1. 페이지 컨텍스트 ↔ 콘텐츠 스크립트** — 콘텐츠 스크립트는 격리된 월드(isolated world)에서 실행되어 페이지의 `window.fetch`에 접근할 수 없습니다. `<script src="...">`로 페이지 컨텍스트(MAIN world)에 스크립트를 주입해 `fetch` 응답을 가로채고, `window.postMessage`로 되돌려줍니다.
 
 ```js
-// case_system_interceptor.js — 페이지 컨텍스트(MAIN world)에서 실행
+// case_system_interceptor.ts — 페이지 컨텍스트(MAIN world)에서 실행
 const originalFetch = window.fetch
 window.fetch = async (...args) => {
   const response = await originalFetch(...args)
@@ -206,7 +206,7 @@ function runOnSystem(system, command) {
 **인터럽트 기반 자동 전환**: 핵심 이벤트(접수 카드 생성)는 강제로 패널을 전환하고, 부차적 이벤트(인바운드 콜백)는 뱃지만 올립니다.
 
 ```js
-// ui_controller.js
+// ui_controller.ts
 function onCaseConnected() {
   switchPanel('panel-case', { forced: true })
 }
@@ -220,10 +220,10 @@ function onInboundCountUpdated(count) {
 ```mermaid
 sequenceDiagram
     participant User as 사용자
-    participant A as portal_entry.js
+    participant A as portal_entry.ts
     participant Iframe as 임베드 폼
     participant BG as service_worker.ts
-    participant B as case_system_driver.js
+    participant B as case_system_driver.ts
     participant PageB as 사고 관리 시스템 페이지(fetch)
 
     User->>A: "접수 카드 생성" 클릭
@@ -238,7 +238,7 @@ sequenceDiagram
         Note over B: 사고 관리 시스템 탭이 화면 전면으로 전환됨
         B->>B: 필드 6개를 하나씩 채우고(RPA_FIELD_DELAY_MS)<br/>제출 버튼 클릭
         B->>PageB: 제출 → POST /api/cases
-        PageB-->>B: case_system_interceptor.js가 응답 가로채 전달
+        PageB-->>B: case_system_interceptor.ts가 응답 가로채 전달
         B->>BG: CASE_CREATED { caseId, ... }
         BG->>BG: hubState 갱신 + 결과 로그 시트에 기록
         BG->>A: broadcast(CASE_CREATED) + focusA()
@@ -268,7 +268,7 @@ sequenceDiagram
 
 - **의사코드** — `extension/` 아래 파일은 흐름과 설계 의도만 담고 있어 그대로 실행되지 않습니다. 구현 본문은 주석으로 대체했습니다.
 - **모듈 로딩** — 레거시 스크립트는 전역 네임스페이스를 통해 서로를 참조하고, 로드 순서는 `manifest.json` 배열이 정합니다. 실제 배포에서는 번들러가 이 순서를 고정합니다.
-- **테스트** — 의사코드라 실행 테스트가 없습니다. 실제 구현으로 옮긴다면 DOM에 의존하지 않는 부분(`candidate_search.js`의 거리·스코어링)이 먼저 테스트 대상이 됩니다.
+- **테스트** — 의사코드라 실행 테스트가 없습니다. 실제 구현으로 옮긴다면 DOM에 의존하지 않는 부분(`candidate_search.ts`의 거리·스코어링)이 먼저 테스트 대상이 됩니다.
 - **임베드 브리지** — 동시 1건 대기를 전제로 한 단순화입니다. 동시 다발 요청이 필요한 환경이라면 상관관계 ID를 도입하는 설계가 됩니다.
 
 ## 데모 시나리오

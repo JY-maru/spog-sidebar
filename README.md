@@ -88,18 +88,18 @@ extension/
   js/
     config.ts                       공유 상수 + 전역 유틸 (import 없이 선번들)
     globals.d.ts                    레거시 전역들의 타입 선언
-    portal_entry.js                 포털 진입점 — 초기화 순서만 담당
-    ui_controller.js                사이드바 셸 — 패널 전환·토스트·복구
+    portal_entry.ts                 포털 진입점 — 초기화 순서만 담당
+    ui_controller.ts                사이드바 셸 — 패널 전환·토스트·복구
     message_router.ts               메시지 허브 — 스키마·오리진·타임아웃 가드
-    case_system_driver.js           케이스 관리 시스템 페이지 자동화
-    dispatch_system_driver.js       예약·배차 시스템 페이지 자동화
-    customer_system_driver.js       고객 응대 시스템 페이지 자동화
-    *_system_interceptor.js         각 페이지 메인 월드에서 fetch 응답만 가로챔
-    text_parser.js / dom_parser.js  비정형 텍스트·HTML 표 파싱
-    candidate_search.js             거리 계산·후보 스코어링 (DOM 비의존 순수 함수)
+    case_system_driver.ts           케이스 관리 시스템 페이지 자동화
+    dispatch_system_driver.ts       예약·배차 시스템 페이지 자동화
+    customer_system_driver.ts       고객 응대 시스템 페이지 자동화
+    *_system_interceptor.ts         각 페이지 메인 월드에서 fetch 응답만 가로챔
+    text_parser.ts / dom_parser.ts  비정형 텍스트·HTML 표 파싱
+    candidate_search.ts             거리 계산·후보 스코어링 (DOM 비의존 순수 함수)
     state/                          Zustand 공유 상태 + 구버전 호환 파사드
     panels/                         React 패널 6종
-  backend/mock_sidebar_webhook.js   백엔드 웹훅 모형
+  backend/mock_sidebar_webhook.ts   백엔드 웹훅 모형
 docs/                               데모 영상 + 아키텍처 문서 + 사용설명서
 ```
 
@@ -109,7 +109,7 @@ docs/                               데모 영상 + 아키텍처 문서 + 사용
 
 각 파일은 머리말에 "이 파일이 보여주는 것"을 한 줄로 적어두었습니다. 전체를 순서대로
 읽고 싶다면 `service_worker.ts`(허브) → `message_router.ts`(검증) →
-`*_system_driver.js`(자동화) → `state/`(동시성) 순서를 권합니다.
+`*_system_driver.ts`(자동화) → `state/`(동시성) 순서를 권합니다.
 
 ## License
 

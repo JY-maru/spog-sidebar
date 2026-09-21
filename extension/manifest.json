@@ -23,17 +23,17 @@
         "js/state/store.ts",
         "js/state/legacy_adapter.ts",
         "js/state/index.ts",
-        "js/text_parser.js",
-        "js/dom_parser.js",
-        "js/candidate_search.js",
+        "js/text_parser.ts",
+        "js/dom_parser.ts",
+        "js/candidate_search.ts",
         "js/message_router.ts",
-        "js/ui_controller.js",
+        "js/ui_controller.ts",
         "js/panels/inbound_panel.tsx",
         "js/panels/case_panel.tsx",
         "js/panels/dispatch_panel.tsx",
         "js/panels/postcare_panel.tsx",
         "js/panels/settings_panel.tsx",
-        "js/portal_entry.js"
+        "js/portal_entry.ts"
       ],
       "_comment": "실제 원본은 state/index.ts와 message_router.ts+panels/*.tsx가 서로 다른 빌드 타깃(정적 state 번들 / 패널 번들)으로 각각 사전 컴파일된 결과물을 로드한다 — 이 목록은 소스 단위 의존 순서를 보여주기 위한 것이며 그대로 실행되지 않는다.",
       "css": ["styles/sidebar.css"],
@@ -41,23 +41,23 @@
     },
     {
       "matches": ["http://localhost:8082/*"],
-      "js": ["js/config.ts", "js/case_system_driver.js"],
+      "js": ["js/config.ts", "js/case_system_driver.ts"],
       "run_at": "document_idle"
     },
     {
       "matches": ["http://localhost:8083/*"],
-      "js": ["js/config.ts", "js/dom_parser.js", "js/candidate_search.js", "js/dispatch_system_driver.js"],
+      "js": ["js/config.ts", "js/dom_parser.ts", "js/candidate_search.ts", "js/dispatch_system_driver.ts"],
       "run_at": "document_idle"
     },
     {
       "matches": ["http://localhost:8084/*"],
-      "js": ["js/config.ts", "js/customer_system_driver.js"],
+      "js": ["js/config.ts", "js/customer_system_driver.ts"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["js/case_system_interceptor.js", "js/dispatch_system_interceptor.js", "js/customer_system_interceptor.js"],
+      "resources": ["js/case_system_interceptor.ts", "js/dispatch_system_interceptor.ts", "js/customer_system_interceptor.ts"],
       "matches": ["http://localhost:8082/*", "http://localhost:8083/*", "http://localhost:8084/*"]
     }
   ]
