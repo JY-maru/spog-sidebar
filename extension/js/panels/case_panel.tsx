@@ -1,6 +1,6 @@
 // panels/case_panel.tsx
-// [PSEUDOCODE] 📋 케이스 처리 패널(기본 활성) — 접수양식 텍스트 파싱 결과와
-// System B RPA 진행 표시줄, 케이스 연결 상태를 보여준다. message_router.ts가
+// [MOCK] 📋 케이스 처리 패널(기본 활성) — 접수양식 텍스트 파싱 결과와
+// 케이스 관리 시스템 RPA 진행 표시줄, 케이스 연결 상태를 보여준다. message_router.ts가
 // 교차검증을 통과시킨 뒤에만 setConnected()를 호출한다(이 파일 자체는 검증하지
 // 않는다 — 검증 책임은 message_router.ts에 있고, 여기는 결과 반영만 한다).
 // 패널 전용 로컬 Zustand 스토어(caseStore) 패턴 — 원본의 accidentStore.ts에 대응.
@@ -62,7 +62,7 @@ function submitIntakeText(rawText: string) {
     return;
   }
   const data = window.TextParser.normalizeFields(fields);
-  window.UiController.updateStatus('System B로 이동해 접수 카드를 생성합니다...', 'info');
+  window.UiController.updateStatus('케이스 관리 시스템으로 이동해 접수 카드를 생성합니다...', 'info');
   chrome.runtime.sendMessage({ type: 'DO_START_CASE_AUTOMATION', data, searchMode: data.resId ? 'RES' : 'ASSET' });
 }
 

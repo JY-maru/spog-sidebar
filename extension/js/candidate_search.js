@@ -1,7 +1,7 @@
 // candidate_search.js
-// [PSEUDOCODE] 좌표 기반 후보 리소스 검색 — 순수 함수 위주로 DOM에 의존하지
-// 않게 분리되어 있어 유닛 테스트하기 좋은 모듈. System C 콘텐츠 스크립트
-// (content_c.js)가 세션 오브젝트를 만들고 이 모듈에 위임하는 구조.
+// [MOCK] 좌표 기반 후보 리소스 검색 — 순수 함수 위주로 DOM에 의존하지
+// 않게 분리되어 있어 유닛 테스트하기 좋은 모듈. 예약·배차 시스템 콘텐츠 스크립트
+// (dispatch_system_driver.js)가 세션 오브젝트를 만들고 이 모듈에 위임하는 구조.
 //
 // 사용 패턴:
 //   const session = await CandidateSearch.startSearch(resId, { selectedCategories, onProgress });
@@ -114,7 +114,7 @@ async function startSearch(resId, { origin, selectedCategories = [], premiumOnly
     discovered: new Map(), resourcesChecked: new Set(), rawResources: [],
     frontier: [], retryQueue: [], retryCount: new Map(), permanentlyFailed: [],
     waveCount: 0, hasMore: true,
-    aborted: false, // "탐색 종료" 버튼을 누르면 content_c.js가 이 값을 true로 세팅
+    aborted: false, // "탐색 종료" 버튼을 누르면 dispatch_system_driver.js가 이 값을 true로 세팅
   };
   session.discovered.set(originData.regionId, { ...originData, distKm: 0 });
   const { searchRegions } = await discoverFromCenter(originData.regionId, session.discovered, originData.lat, originData.lng, signal);
@@ -141,7 +141,7 @@ async function startSearch(resId, { origin, selectedCategories = [], premiumOnly
 //    permanentlyFailed에 기록만 하고 계속 진행한다(전체 검색을 막지 않는다).
 //    session.aborted는 즉시 루프를 빠져나오는 트리거 — "중단" 버튼은 지금까지
 //    찾은 결과를 버리지 않고 그대로 반환하기 위해 세대(generation)를 넘기지
-//    않는다(호출부인 content_c.js 책임). ──
+//    않는다(호출부인 dispatch_system_driver.js 책임). ──
 async function expandSearch(session, { selectedCategories = [], minResults = DEFAULT_MIN_RESULTS, resourceTypeFilter = null, premiumOnly = false, isExpansion = false, onProgress, signal } = {}) {
   const countBefore = countMatching(session.rawResources, selectedCategories, resourceTypeFilter, session, premiumOnly);
   const target = isExpansion ? countBefore + minResults : minResults;

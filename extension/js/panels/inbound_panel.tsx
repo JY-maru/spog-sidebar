@@ -1,5 +1,5 @@
 // panels/inbound_panel.tsx
-// [PSEUDOCODE] 사이드바 공통 셸(Shell) + 토스트 호스트 + 📥 인바운드 문의
+// [MOCK] 사이드바 공통 셸(Shell) + 토스트 호스트 + 📥 인바운드 문의
 // 패널. 실제 원본에서는 이 셋이 Shell.tsx / ToastHost.tsx(+toastStore.ts) /
 // NoticesPanel.tsx로 각각 분리된 파일이지만, mock에서는 하나로 묶었다.
 // 각 패널은 자기 전용 로컬 Zustand 스토어를 갖는다(원본의 accidentStore.ts,
@@ -27,7 +27,7 @@ function pushToast(text: string, tone = 'info') {
   setTimeout(() => dismissToast(id), AUTO_DISMISS_MS);
 }
 // 자동 소멸 없이, 같은 id로 다시 부르면 텍스트/톤만 교체(중복 방지) — 호출자가
-// 직접 dismiss()할 때까지 유지된다. service_worker.js의 "미새로고침 시스템 안내"용.
+// 직접 dismiss()할 때까지 유지된다. service_worker.ts의 "미새로고침 시스템 안내"용.
 function upsertPersistentToast(id: string, text: string, tone = 'info') {
   toastStore.setState((s) => {
     const exists = s.toasts.some((t) => t.id === id);

@@ -1,5 +1,5 @@
 // backend/mock_sidebar_webhook.js
-// [PSEUDOCODE] SIDEBAR_MGMT_WEBHOOK이 실제로는 무엇을 하는지 보여주는 파일.
+// [MOCK] SIDEBAR_MGMT_WEBHOOK이 실제로는 무엇을 하는지 보여주는 파일.
 // 원본은 이게 별도 백엔드 서버가 아니라 "스프레드시트 + 경량 스크립트 런타임"
 // (Google Apps Script 같은) 위에서 돈다 — 그래서 이 파일도 진짜 서버 프레임워크
 // 없이, 함수 하나가 요청 하나를 처리하는 형태 그대로 옮겼다. 캐싱은 그 런타임이
@@ -21,7 +21,7 @@ const LIST_CACHE_KEY = 'SIDEBAR_LIST_CACHE_V1';
 const SIZE_WARN_BYTES = 90_000; // 캐시 값 상한(100KB)에 근접하면 경고만 남김 — 아직 실제로 넘은 적 없는
                                  // 투기적 문제라 청킹/분할 저장 같은 구조는 미리 만들지 않았다(YAGNI)
 
-const _sharedCache = new Map(); // [PSEUDOCODE] 런타임이 주는 공유 캐시 흉내. 실제로는
+const _sharedCache = new Map(); // [MOCK] 런타임이 주는 공유 캐시 흉내. 실제로는
                                  // 요청 프로세스 경계를 넘어 여러 사용자가 공유하는 저장소.
 function cacheGet(key) {
   const e = _sharedCache.get(key);

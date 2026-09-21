@@ -1,5 +1,5 @@
 // panels/settings_panel.tsx
-// [PSEUDOCODE] ⚙️ 설정 패널 — 사이드바 자체의 환경설정(알림 on/off, 테마,
+// [MOCK] ⚙️ 설정 패널 — 사이드바 자체의 환경설정(알림 on/off, 테마,
 // 알림채널 자동참여 강제 여부 등). 다른 패널과 달리 백엔드 상태를 반영하지
 // 않는 순수 로컬 설정이 대부분이라 별도 서버 동기화 로직이 없다. mock에서는
 // 단순화를 위해 zustand 스토어 없이 localStorage를 직접 읽고 쓰는 controlled

@@ -1,5 +1,5 @@
 // state/store.ts
-// [PSEUDOCODE] state_manager.js(구 버전 vanilla 전역객체)를 대체하는 실제
+// [MOCK] state_manager.js(구 버전 vanilla 전역객체)를 대체하는 실제
 // Zustand 스토어. 필드 개수·의미는 원본과 동일하게 유지했고, 이름만 업종
 // 중립 용어로 일반화했다. subscribe()는 이 스토어에서 "처음" 생긴 기능 —
 // 이전 vanilla 버전엔 구독 개념 자체가 없었다.
@@ -19,7 +19,7 @@ export interface ActiveCaseInfo {
 }
 
 export interface SharedState {
-  /** 케이스 연동 정보 (System B 접수 카드와의 연결 상태) */
+  /** 케이스 연동 정보 (케이스 관리 시스템 접수 카드와의 연결 상태) */
   activeCaseInfo: ActiveCaseInfo;
   /** 임베드 폼(iframe)에서 받은 최신 원문 페이로드 */
   latestEmbedFormData: { resId: string | null; resourceId: string | null };

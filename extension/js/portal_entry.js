@@ -1,7 +1,7 @@
-// content_a.js
-// [PSEUDOCODE] System A(포털) 콘텐츠 스크립트 — 진입 조건 판단 후
+// portal_entry.js
+// [MOCK] 포털 콘텐츠 스크립트 — 진입 조건 판단 후
 // MessageRouter/UiController 초기화만 수행한다. 실제 로직은 전부
-// message_router.js / ui_controller.js에 위임되어 있다.
+// message_router.ts / ui_controller.js에 위임되어 있다.
 
 const _currentUrl = decodeURIComponent(window.location.href);
 const _isTopWindow = window.self === window.top;

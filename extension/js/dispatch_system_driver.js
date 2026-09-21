@@ -1,5 +1,5 @@
-// content_c.js
-// [PSEUDOCODE] System C(예약·배차관리) 콘텐츠 스크립트 — 서비스워커가 릴레이한
+// dispatch_system_driver.js
+// [MOCK] 예약·배차 시스템 콘텐츠 스크립트 — 서비스워커가 릴레이한
 // DO_* 명령을 받아 예약블록(일정 점유) 생성, 후보 리소스 검색 오케스트레이션,
 // 수기배정, 고객예약변경을 수행한다. 이 파일 자체는 헤드리스 API 호출 위주(폼
 // 자동채움이 아니라 내부 API를 직접 fetch하는 방식)이고, 좌표 스코어링은
@@ -9,7 +9,7 @@ let RPA_MSG_TOKEN = sessionStorage.getItem('SPOG_MSG_TOKEN');
 if (!RPA_MSG_TOKEN) { RPA_MSG_TOKEN = crypto.randomUUID(); sessionStorage.setItem('SPOG_MSG_TOKEN', RPA_MSG_TOKEN); }
 (() => {
   const spy = document.createElement('script');
-  spy.src = chrome.runtime.getURL('js/injected_c.js');
+  spy.src = chrome.runtime.getURL('js/dispatch_system_interceptor.js');
   spy.onload = () => spy.remove();
   (document.head || document.documentElement).appendChild(spy);
 })();
@@ -156,7 +156,7 @@ async function handleCandidateSearchExpand(resId, selectedCategories, resourceTy
 }
 
 // =========================================================================
-// 명령 라우팅 — service_worker.js가 REQ_*를 DO_*로 변환해 보낸 것을 받는다
+// 명령 라우팅 — service_worker.ts가 REQ_*를 DO_*로 변환해 보낸 것을 받는다
 // =========================================================================
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   switch (msg.type) {

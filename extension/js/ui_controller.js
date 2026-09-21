@@ -1,5 +1,5 @@
 // ui_controller.js
-// [PSEUDOCODE] System A 사이드바 코어 — 패널 전환(강제 인터럽트 vs 앰비언트
+// [MOCK] 포털 사이드바 코어 — 패널 전환(강제 인터럽트 vs 앰비언트
 // 뱃지), 상태바/토스트, 보안 타이머, MV3 서비스워커 재시작 복구를 담당한다.
 // 패널 "내용"은 이 파일이 그리지 않는다 — js/panels/*.tsx(React 컴포넌트)를
 // 마운트만 하고, 실제 원본에서도 이 파일은 React로 이전되지 않은 순수 JS
@@ -23,7 +23,7 @@ function showToast(text, tone = 'info') {
 
 // [핵심] 확장프로그램 업데이트 직후 "아직 새로고침 안 된 시스템 탭" 안내처럼,
 // 자동으로 사라지면 안 되고 호출자가 직접 갱신/해제하는 토스트. 같은 id로
-// 다시 부르면 텍스트/톤만 교체(중복 방지) — service_worker.js가 새로고침
+// 다시 부르면 텍스트/톤만 교체(중복 방지) — service_worker.ts가 새로고침
 // 감지될 때마다 이 id로 계속 갱신하다가 다 끝나면 dismiss한다.
 function showPersistentToast(id, text, tone = 'info') {
   Panels.toastActions.upsertPersistent(id, text, tone);
@@ -61,7 +61,7 @@ function switchPanel(panelId, { forced = false } = {}) {
   if (forced) Panels.flashNavItem(panelId); // 강제 전환임을 시각적으로 강조
 }
 
-// 인터럽트 예시 — 새 케이스 카드 연결 (message_router.js가 검증 통과 후 호출)
+// 인터럽트 예시 — 새 케이스 카드 연결 (message_router.ts가 검증 통과 후 호출)
 function onCaseConnected() {
   switchPanel('panel-case', { forced: true });
 }
@@ -74,7 +74,7 @@ function onInboundCountUpdated(count) {
 // =========================================================================
 // MV3 서비스워커 재시작 복구
 //   서비스워커는 예고 없이 유휴 종료→재기동될 수 있다. 재기동 직후에는
-//   background.js 메모리에 있던 상태(로그인 식별자 등)가 비어있으므로,
+//   서비스워커 메모리에 있던 상태(로그인 식별자 등)가 비어있으므로,
 //   사이드바가 REQUEST_STATE로 다시 물어 현재 진행 상태를 복구한다.
 //   재시작 감지는 "메시지 전송이 실패했는가"로 판단한다 — 채널이 끊겼다는
 //   것 자체가 곧 서비스워커가 재기동됐다는 신호이기 때문.

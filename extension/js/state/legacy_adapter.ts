@@ -1,5 +1,5 @@
 // state/legacy_adapter.ts
-// [PSEUDOCODE] 구 window.StateManager(vanilla 전역객체)의 정확한 재현 —
+// [MOCK] 구 window.StateManager(vanilla 전역객체)의 정확한 재현 —
 // get/set/update/resetCaseInfo, 그리고 오타 가드(_knownKeys)까지 원본과
 // 동일하게 동작한다.
 //
@@ -16,7 +16,7 @@ const _knownKeys = new Set<string>(Object.keys(sharedStore.getState()));
 
 function _guard(key: string): void {
   if (!_knownKeys.has(key)) {
-    // RPA_UTILS는 config.js가 이 컨텍스트에 이미 심어둔 전역
+    // RPA_UTILS는 config.ts가 이 컨텍스트에 이미 심어둔 전역
     (globalThis as any).RPA_UTILS?.warn(`[StateManager] ⚠️ 알 수 없는 상태 키: "${key}" — 오타 확인 필요`);
   }
 }

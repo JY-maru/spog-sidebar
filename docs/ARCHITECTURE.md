@@ -1,7 +1,26 @@
 # 아키텍처 상세
 
-> [README.md](../README.md)의 요약을 읽고 오면 이해하기 쉽습니다. 아래는 실제
+> [README.md](../README.md)의 요약을 읽고 오면 이해하기 쉽습니다. 아래는
 > `extension/` 소스(파일명·메시지 타입·함수명)를 기준으로 설명합니다.
+
+> **전부 모형(mock)입니다.** 이 문서에 나오는 네 시스템·엔드포인트·데이터는 모두
+> 로컬 모의 서버(`localhost:8081~8086`)를 가리키는 가상의 값이며, 실제 연동 대상은
+> 이 저장소에 포함되어 있지 않습니다. 번들러 설정이 없어 그대로 실행되지도 않습니다.
+> 목적은 구조를 보여주는 것입니다.
+
+## 파일 네이밍 규칙
+
+파일명이 곧 "어느 시스템의 무슨 역할인지"입니다.
+
+| 접미사 | 실행 위치 | 역할 |
+|---|---|---|
+| `*_system_driver.js` | 대상 페이지의 격리 월드(isolated world) | 폼을 채우고 버튼을 누르는 자동화 |
+| `*_system_interceptor.js` | 대상 페이지의 메인 월드(MAIN world) | 페이지 자신의 `fetch` 응답만 가로채 릴레이 |
+| `portal_entry.js` | 포털 페이지 | 초기화 순서만 담당하는 진입점 |
+| `config.ts` / `globals.d.ts` | 공용 | 공유 상수·유틸과 그 전역 타입 선언 |
+
+`case` / `dispatch` / `customer` 접두사가 각각 케이스 관리·예약·배차·고객 응대
+시스템에 대응합니다.
 
 ## 핵심 설계 아이디어
 
@@ -15,7 +34,8 @@
 
 | 레이어 | 파일 | 스택 | 이유 |
 |---|---|---|---|
-| 제3자 페이지 자동화 | `content_b/c/d.js`, `service_worker.js` | 순수 JavaScript | 대상 페이지 안에 주입되는 코드라 프레임워크를 못 씀 |
+| 제3자 페이지 자동화 | `case/dispatch/customer_system_driver.js` | 순수 JavaScript | 대상 페이지 안에 주입되는 코드라 프레임워크를 못 씀 |
+| 백그라운드 허브 | `background/service_worker.ts` | TypeScript | 메시지 타입·탭 오케스트레이션이 늘어나 타입 검사가 필요해진 레이어 |
 | 사이드바 UI | `panels/*.tsx` | React 19 + TypeScript | 패널별 로컬 상태·리렌더링 관리 |
 | 공유 상태 | `state/store.ts` | Zustand 5 | 여러 패널이 구독하는 전역 상태, `subscribe()` 지원 |
 | 추적 상태 | `state/tracking_store.ts` | Zustand 5 | 폴링(스캔)으로만 확인 가능한 외부 데이터를 톰스톤+스코프 한정 병합으로 깜빡임 없이 추적 |
@@ -31,7 +51,7 @@
 
 | 계층 | 파일 | 스택 | 책임 |
 |---|---|---|---|
-| Config | `config.js` | JS | 도메인 상수, 메시지 타입, 타임아웃 값을 `Object.freeze`로 동결해 `globalThis`에 등록 |
+| Config | `config.ts` | TS | 도메인 상수, 타임아웃 값을 `Object.freeze`로 동결해 `globalThis`에 등록. 타입은 `globals.d.ts`가 전역으로 노출 |
 | State (store) | `state/store.ts` | TS + Zustand | `createStore`로 만든 공유 상태 스토어 |
 | State (호환 파사드) | `state/legacy_adapter.ts` | TS | 구버전 API를 재현해 기존 호출부를 안 건드림 |
 | State (배선) | `state/index.ts` | TS | `window.StateManager`/`window.ResourceStore` 전역 등록 |
@@ -42,16 +62,28 @@
 | Bridge / Bus | `message_router.ts` | TS + zod | 타입드 메시지 레지스트리 — 스키마·오리진·타임아웃 가드를 한 곳에서 담당 |
 | Panels | `js/panels/*.tsx` (6개) | TS + React + Zustand | 패널별 컴포넌트 + 전용 로컬 스토어 |
 | UI 셸 | `ui_controller.js` | JS | 인터럽트 vs 앰비언트 판단, MV3 재시작 복구 — React로 안 옮겨진 레거시 코어 |
-| Entry point | `content_a.js` | JS | `MessageRouter.init()` → `UiController.init()` 순서로 초기화만 수행 |
+| Entry point | `portal_entry.js` | JS | `MessageRouter.init()` → `UiController.init()` 순서로 초기화만 수행 |
 
 ```
 config → state/store → state/legacy_adapter → state/index
        → text_parser → dom_parser → candidate_search
        → message_router → ui_controller → panels/*(React 마운트)
-       → content_a(init 호출)
+       → portal_entry(init 호출)
 ```
 
-Manifest V3 서비스워커는 파일 하나만 등록할 수 있어, `background/service_worker.js`는 `importScripts('../js/config.js')`로 config 모듈만 별도로 끌어와 상수를 공유합니다.
+Manifest V3 서비스워커는 파일 하나만 등록할 수 있어, `background/service_worker.ts`는 빌드 시 config 모듈을 함께 번들해 같은 상수를 공유합니다.
+
+### config는 import 없이 IIFE로 선번들한다
+
+`config.ts`는 `content_scripts` 목록의 **첫 항목**으로 로드되고, 뒤따르는 스크립트들이
+로드 직후 `globalThis.RPA_APP_CONFIG`를 동기적으로 읽습니다. 그런데 엔트리 파일에
+`import` 문이 하나라도 있으면 번들러(crxjs 등)는 그 엔트리를 **비동기 로더**로 바꿔
+출력합니다. 그러면 config가 전역을 심기 전에 다음 스크립트가 먼저 실행돼 경쟁이
+생깁니다.
+
+그래서 `config.ts`만은 import 없이 작성하고 IIFE로 선번들해 동기 로드를 보장합니다.
+타입은 `import`가 필요 없는 `globals.d.ts`의 `declare global`로 공유합니다 — 이 규칙이
+깨지면 증상이 "간헐적으로 `RPA_APP_CONFIG`가 undefined"로 나타나 원인을 찾기 어렵습니다.
 
 ## 3. 메시지 버스: 3단 구조
 
@@ -60,9 +92,9 @@ Manifest V3 서비스워커는 파일 하나만 등록할 수 있어, `backgroun
 ```mermaid
 sequenceDiagram
     participant Page as 사고 관리 시스템 페이지 자신의 fetch
-    participant Inject as injected_b.js (page context)
-    participant Content as content_b.js (격리 world)
-    participant BG as service_worker.js (허브)
+    participant Inject as case_system_interceptor.js (page context)
+    participant Content as case_system_driver.js (격리 world)
+    participant BG as service_worker.ts (허브)
     participant Router as message_router.ts (포털)
     participant Iframe as 임베드 폼(iframe)
 
@@ -77,7 +109,7 @@ sequenceDiagram
 **3-1. 페이지 컨텍스트 ↔ 콘텐츠 스크립트** — 콘텐츠 스크립트는 격리된 월드(isolated world)에서 실행되어 페이지의 `window.fetch`에 접근할 수 없습니다. `<script src="...">`로 페이지 컨텍스트(MAIN world)에 스크립트를 주입해 `fetch` 응답을 가로채고, `window.postMessage`로 되돌려줍니다.
 
 ```js
-// injected_b.js — 페이지 컨텍스트(MAIN world)에서 실행
+// case_system_interceptor.js — 페이지 컨텍스트(MAIN world)에서 실행
 const originalFetch = window.fetch
 window.fetch = async (...args) => {
   const response = await originalFetch(...args)
@@ -114,7 +146,7 @@ function getEmbedFormData(kind) {
 **3-3. 콘텐츠 스크립트 ↔ 백그라운드 ↔ 다른 탭 — 허브 앤 스포크** — 서로 다른 탭의 콘텐츠 스크립트는 직접 통신할 수 없어, 백그라운드 서비스워커가 허브 역할을 합니다.
 
 ```js
-// background/service_worker.js — 타입별로 개별 리스너를 등록하는 방식
+// background/service_worker.ts — 타입별로 개별 리스너를 등록하는 방식
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type !== 'INTERCEPTED_CASE') return false
   broadcastToPortal(msg) // 포털 탭 전체에 push
@@ -130,12 +162,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 registerRuntimeHandler('INTERCEPTED_CASE', (m) => !!m.caseId, handleInterceptedCase)
 ```
 
-> `service_worker.js`는 타입별 개별 `addListener` 방식이고 `message_router.ts`는 스키마+오리진+타임아웃 가드를 갖춘 레지스트리입니다 — 두 계층의 분배 스타일이 다른 점은 개선 여지가 있습니다(§9).
+> `service_worker.ts`는 타입별 개별 `addListener` 방식이고 `message_router.ts`는 스키마+오리진+타임아웃 가드를 갖춘 레지스트리입니다 — 두 계층의 분배 스타일이 다른 점은 개선 여지가 있습니다(§9).
 
 ## 4. 상태 관리: 2단 상태 설계
 
 - **탭 로컬 상태** (`state/store.ts`) — 새로고침하면 사라지는 휘발성 상태.
-- **허브 상태** (`service_worker.js`의 `hubState`) — 여러 탭에 걸쳐 지속돼야 하는 진행 상태. MV3 서비스워커는 유휴 시 언제든 종료(cold start)될 수 있어, 각 스텝이 끝날 때마다 재broadcast하고 포털은 로드 시 `REQUEST_STATE`로 다시 물어 복구합니다.
+- **허브 상태** (`service_worker.ts`의 `hubState`) — 여러 탭에 걸쳐 지속돼야 하는 진행 상태. MV3 서비스워커는 유휴 시 언제든 종료(cold start)될 수 있어, 각 스텝이 끝날 때마다 재broadcast하고 포털은 로드 시 `REQUEST_STATE`로 다시 물어 복구합니다.
 
 ```ts
 // state/legacy_adapter.ts — 화이트리스트 가드가 있는 구버전 호환 파사드
@@ -151,7 +183,7 @@ export const legacyStateManager = {
 백그라운드는 필요한 탭이 없으면 대신 열어주는 오케스트레이터이기도 합니다. 대상 탭을 **전면으로 가져와** 처리 과정을 보여주고, 완료되면 원래 탭으로 자동 복귀합니다.
 
 ```js
-// background/service_worker.js — find-or-create-tab 패턴
+// background/service_worker.ts — find-or-create-tab 패턴
 function runOnHost(pattern, entryUrl, message, focus) {
   chrome.tabs.query({ url: pattern }, (tabs) => {
     if (tabs.length > 0) {
@@ -189,10 +221,10 @@ function onInboundCountUpdated(count) {
 ```mermaid
 sequenceDiagram
     participant User as 사용자
-    participant A as content_a.js
+    participant A as portal_entry.js
     participant Iframe as 임베드 폼
-    participant BG as service_worker.js
-    participant B as content_b.js
+    participant BG as service_worker.ts
+    participant B as case_system_driver.js
     participant PageB as 사고 관리 시스템 페이지(fetch)
 
     User->>A: "접수 카드 생성" 클릭
@@ -207,7 +239,7 @@ sequenceDiagram
         Note over B: 사고 관리 시스템 탭이 화면 전면으로 전환됨
         B->>B: 필드 6개를 하나씩 채우고(RPA_FIELD_DELAY_MS)<br/>제출 버튼 클릭
         B->>PageB: 제출 → POST /api/cases
-        PageB-->>B: injected_b.js가 응답 가로채 전달
+        PageB-->>B: case_system_interceptor.js가 응답 가로채 전달
         B->>BG: CASE_CREATED { caseId, ... }
         BG->>BG: hubState 갱신 + 결과 로그 시트에 기록
         BG->>A: broadcast(CASE_CREATED) + focusA()
@@ -235,7 +267,7 @@ sequenceDiagram
 
 ## 9. 알려진 한계
 
-- **디스패치 스타일이 계층별로 다름** — `service_worker.js`는 타입별 개별 리스너, `message_router.ts`는 타입드 registry.
+- **디스패치 스타일이 계층별로 다름** — `service_worker.ts`는 타입별 개별 리스너, `message_router.ts`는 타입드 registry.
 - **모듈 로딩이 전역 네임스페이스 기반** — `window.SPOG_*`/`window.Panels`, 로드 순서를 `manifest.json` 배열에 의존.
 - **`Panels` 네임스페이스가 암묵적으로 합성됨** — 로드 순서가 깨지면 특정 액션이 조용히 `undefined`.
 - **자동화 테스트 부재** — 순수 함수로 분리된 부분(`candidate_search.js` 등)부터 붙이기 좋음.

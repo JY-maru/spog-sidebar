@@ -1,9 +1,9 @@
 // message_router.ts
-// [PSEUDOCODE] System A(포털) 콘텐츠 스크립트의 메시지 허브.
+// [MOCK] 포털 콘텐츠 스크립트의 메시지 허브.
 //   1) zod 스키마 기반 타입드 메시지 레지스트리 — chrome.runtime.onMessage /
 //      window.postMessage 호출부가 흩어져 있던 원본 구조를, 스키마 검증 +
 //      오리진 검증 + 타임아웃 가드를 한 곳에서 담당하는 팩토리로 통일한 형태.
-//   2) 임베드 폼(iframe) ↔ System B(케이스관리) API 응답 교차검증 — 사이드바가
+//   2) 임베드 폼(iframe) ↔ 케이스 관리 시스템 API 응답 교차검증 — 사이드바가
 //      "케이스 연결됨"으로 표시하기 전에 반드시 통과해야 하는 방어 로직.
 // 실제 함수/타입 이름은 mock 네이밍으로 치환했고, 도메인 URL/한글 고유명사는
 // 전부 제거했습니다. 실제 원본은 이 레이어 전체가 TypeScript + zod로 작성돼
@@ -22,20 +22,18 @@ import { z } from 'zod';
 //    c) 'trusted-list' — manifest의 host_permissions/content_scripts
 //       matches와 대응되는 화이트리스트 기반 검증(위 두 경우에 안 맞는
 //       일반적인 신뢰 origin 확인용).
-// 검증 로직은 호출부마다 인라인으로 다시 쓰지 않고 이 한 곳에만 둔다 —
-// "깜빡하고 검증을 안 넣는" 실수를 원천 차단하기 위해서다. (과거엔 config.js
-// 쪽에 문서 주석만 있고 실제 호출부가 0곳인 죽은 오리진검증 코드가 있었다 —
-// 이 모듈이 그 자리를 대신한다.)
+// 검증 로직은 호출부마다 인라인으로 다시 쓰지 않고 이 한 곳에만 둔다.
+// 검증을 통과하지 않은 메시지는 어떤 핸들러에도 도달하지 않는다.
 // =========================================================================
 const EMBED_SANDBOX_SUFFIX = '.mock-embed-sandbox.local';
 
 /** manifest.json의 host_permissions/content_scripts matches와 대응되는
  *  신뢰 출처 화이트리스트 (mock 도메인으로 일반화). */
 const TRUSTED_ORIGINS: readonly string[] = Object.freeze([
-  'http://localhost:8081', // System A (포털)
-  'http://localhost:8082', // System B (케이스 관리)
-  'http://localhost:8083', // System C (예약·배차)
-  'http://localhost:8084', // System D (고객 응대)
+  'http://localhost:8081', // 포털 (포털)
+  'http://localhost:8082', // 케이스 관리 시스템 (케이스 관리)
+  'http://localhost:8083', // 예약·배차 시스템 (예약·배차)
+  'http://localhost:8084', // 고객 응대 시스템 (고객 응대)
   'http://localhost:8085', // 주소 검색 위젯류 서드파티 도메인 (일반화)
 ]);
 
@@ -84,8 +82,8 @@ const CaseFormData = loose('CASE_FORM_DATA');
 // =========================================================================
 // 3. 타입드 메시지 레지스트리 — 여러 다른 디스패치 패턴(if/else 체인, 객체맵,
 //    switch)을 하나로 통일. 같은 type을 두 번 등록하면 로드 시점에 즉시
-//    에러를 던져서 "나중 정의가 조용히 이긴다" 류의 버그가 런타임까지
-//    묻히지 않게 한다. Map은 globalThis에 지연 생성 싱글턴으로 둔다 —
+//    에러를 던진다 — 중복 등록은 로드 시점에 드러나야 한다.
+//    Map은 globalThis에 지연 생성 싱글턴으로 둔다 —
 //    콘텐츠스크립트가 여러 번들 청크로 쪼개져도 항상 같은 인스턴스를
 //    공유해야 하기 때문이다(state 레이어의 window.ResourceStore와 동일한 이유).
 // =========================================================================
@@ -180,10 +178,9 @@ function invokePostHandler(type: string, data: any): void {
 }
 
 // =========================================================================
-// 4. 임베드 폼 ↔ System B API 교차검증 — 케이스 카드가 실제로 지금 이 화면의
+// 4. 임베드 폼 ↔ 케이스 관리 시스템 API 교차검증 — 케이스 카드가 실제로 지금 이 화면의
 //    폼과 같은 건인지 대조한 다음에만 "연결됨"으로 표시한다.
-//    확인 불가(타임아웃)도 안전하지 않은 상태로 간주해 차단한다 — "모르면
-//    일단 통과시킨다"는 예전 방식은 실제 불일치를 놓치는 구멍이었다.
+//    확인 불가(타임아웃)도 불일치와 같게 취급해 차단한다 — fail-closed.
 // =========================================================================
 async function getEmbedFormData(kind: string) {
   const frame = window.StateManager.get('targetEmbedFrame') || document.querySelector('iframe');
@@ -247,7 +244,7 @@ async function handleInterceptedCase(msg: any) {
 }
 
 // =========================================================================
-// 5. 사이드바 중앙 폴링 응답 반영 — 백그라운드(service_worker.js)가 대신
+// 5. 사이드바 중앙 폴링 응답 반영 — 백그라운드(service_worker.ts)가 대신
 //    가져온 설정을 push한 것을 받아 공지사항/버전배너/알림채널 권한을 갱신한다.
 // =========================================================================
 function handleClientConfigUpdated(msg: any) {

@@ -1,10 +1,10 @@
 // state/index.ts
-// [PSEUDOCODE] message_router.ts/ui_controller.js(둘 다 클래식 콘텐츠스크립트)가
+// [MOCK] message_router.ts/ui_controller.js(둘 다 클래식 콘텐츠스크립트)가
 // 이 모듈을 직접 import하면 번들러가 로더+동적 import 쌍으로 바꿔버려서 스크립트
 // 로드 순서가 깨진다("MessageRouter is not defined"류 버그). 그래서 이 파일
-// 하나만 zustand를 import하고, config.js의 전역 설정 객체와 같은 방식으로
+// 하나만 zustand를 import하고, config.ts의 전역 설정 객체와 같은 방식으로
 // window에 매단다 — 별도 빌드 타깃으로 완전 정적 스크립트(state 번들)를
-// 미리 만들어서 config.js 직후에 로드한다.
+// 미리 만들어서 config.ts 직후에 로드한다.
 //
 // hooks.ts는 일부러 여기서 import하지 않는다 — zustand/react는 React를 peer
 // dependency로 요구하는데, React는 패널이 실제로 React로 이전된 곳에서만

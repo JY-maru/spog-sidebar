@@ -1,5 +1,5 @@
 // panels/bulletin_panel.tsx
-// [PSEUDOCODE] 게시판 세부창(모달) — 본문 온디맨드 로딩의 실제 흥미로운 부분만
+// [MOCK] 게시판 세부창(모달) — 본문 온디맨드 로딩의 실제 흥미로운 부분만
 // 남긴 축약본. 목록 렌더링/드래그 재정렬 UI 등 반복적인 마크업은 생략했다.
 import { useCallback, useEffect, useState } from 'react';
 import { fetchBulletinDetail, toggleBulletinPin, type Bulletin } from '../state/bulletin_store';
@@ -30,7 +30,7 @@ export function BulletinDetailModal({ bulletin, onClose }: { bulletin: Bulletin 
 
   // 목록엔 본문이 안 실려오므로(bulletin_store.ts 참고) 열 때마다 대체로
   // 처음 조회한다. 백엔드가 바쁘면(동시실행 제한) 재시도(fetchWebhookJson,
-  // service_worker.js)까지 다 실패할 수 있어서, 무한 스피너 대신 "다시 시도"
+  // service_worker.ts)까지 다 실패할 수 있어서, 무한 스피너 대신 "다시 시도"
   // 버튼을 명시적으로 둔다 — 실패를 조용히 감추지 않는다.
   useEffect(() => {
     if (!bulletin) return;

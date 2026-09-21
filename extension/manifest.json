@@ -13,13 +13,13 @@
     "http://localhost:8086/*"
   ],
   "background": {
-    "service_worker": "background/service_worker.js"
+    "service_worker": "background/service_worker.ts"
   },
   "content_scripts": [
     {
       "matches": ["http://localhost:8081/*"],
       "js": [
-        "js/config.js",
+        "js/config.ts",
         "js/state/store.ts",
         "js/state/legacy_adapter.ts",
         "js/state/index.ts",
@@ -33,7 +33,7 @@
         "js/panels/dispatch_panel.tsx",
         "js/panels/postcare_panel.tsx",
         "js/panels/settings_panel.tsx",
-        "js/content_a.js"
+        "js/portal_entry.js"
       ],
       "_comment": "실제 원본은 state/index.ts와 message_router.ts+panels/*.tsx가 서로 다른 빌드 타깃(정적 state 번들 / 패널 번들)으로 각각 사전 컴파일된 결과물을 로드한다 — 이 목록은 소스 단위 의존 순서를 보여주기 위한 것이며 그대로 실행되지 않는다.",
       "css": ["styles/sidebar.css"],
@@ -41,23 +41,23 @@
     },
     {
       "matches": ["http://localhost:8082/*"],
-      "js": ["js/config.js", "js/content_b.js"],
+      "js": ["js/config.ts", "js/case_system_driver.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["http://localhost:8083/*"],
-      "js": ["js/config.js", "js/dom_parser.js", "js/candidate_search.js", "js/content_c.js"],
+      "js": ["js/config.ts", "js/dom_parser.js", "js/candidate_search.js", "js/dispatch_system_driver.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["http://localhost:8084/*"],
-      "js": ["js/config.js", "js/content_d.js"],
+      "js": ["js/config.ts", "js/customer_system_driver.js"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["js/injected_b.js", "js/injected_c.js", "js/injected_d.js"],
+      "resources": ["js/case_system_interceptor.js", "js/dispatch_system_interceptor.js", "js/customer_system_interceptor.js"],
       "matches": ["http://localhost:8082/*", "http://localhost:8083/*", "http://localhost:8084/*"]
     }
   ]

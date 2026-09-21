@@ -1,7 +1,7 @@
-// content_b.js
-// [PSEUDOCODE] System B(케이스관리) 콘텐츠 스크립트 — 접수 카드 생성 RPA.
+// case_system_driver.js
+// [MOCK] 케이스 관리 시스템 콘텐츠 스크립트 — 접수 카드 생성 RPA.
 // 실제 사이트의 Vue 기반 SPA 폼을 자동 채움+제출한다. all_frames로 주입되며
-// (우편번호 검색 팝업 iframe 포함), 페이지 메인월드 스파이(injected_b.js)와
+// (우편번호 검색 팝업 iframe 포함), 페이지 메인월드 스파이(case_system_interceptor.js)와
 // 1회성 토큰으로 검증된 postMessage 채널을 사용한다.
 
 // ── postMessage 위조 방지 토큰 — 이 페이지의 모든 프레임이 공유 ──
@@ -11,10 +11,10 @@ if (!RPA_MSG_TOKEN) {
   sessionStorage.setItem('SPOG_MSG_TOKEN', RPA_MSG_TOKEN);
 }
 
-// injected_b.js(메인월드 스파이)를 동적 주입
+// case_system_interceptor.js(메인월드 스파이)를 동적 주입
 (() => {
   const spy = document.createElement('script');
-  spy.src = chrome.runtime.getURL('js/injected_b.js');
+  spy.src = chrome.runtime.getURL('js/case_system_interceptor.js');
   spy.onload = () => spy.remove();
   (document.head || document.documentElement).appendChild(spy);
 })();
@@ -168,7 +168,7 @@ async function startAutomation(data, searchMode) {
   await clickNextBtnAndFillForm(data, searchMode);
 }
 
-// ── 메인월드(injected_b.js) → 이 콘텐츠 스크립트 릴레이. 오리진은 반드시
+// ── 메인월드(case_system_interceptor.js) → 이 콘텐츠 스크립트 릴레이. 오리진은 반드시
 //    "이 페이지 자신"인지만 검사한다(콘텐츠 스크립트는 항상 자신이 주입된
 //    페이지와만 통신하므로 self-origin 비교로 충분). ──
 window.addEventListener('message', (e) => {

@@ -1,5 +1,5 @@
-// content_d.js
-// [PSEUDOCODE] System D(고객응대) 콘텐츠 스크립트 — 인바운드 콜백 신호 중계,
+// customer_system_driver.js
+// [MOCK] 고객 응대 시스템 콘텐츠 스크립트 — 인바운드 콜백 신호 중계,
 // 회원정보 선캐싱 + 화면 표시값과의 교차검증, 예약 클릭 시 리소스/보험 정보
 // 조회 후 사이드바로 전달한다. 모든 iframe에서 실행되므로(all_frames) 콜백
 // 상담 iframe 안에서 일어나는 인입도 함께 처리한다.
@@ -11,7 +11,7 @@ let RPA_MSG_TOKEN = sessionStorage.getItem('SPOG_MSG_TOKEN');
 if (!RPA_MSG_TOKEN) { RPA_MSG_TOKEN = crypto.randomUUID(); sessionStorage.setItem('SPOG_MSG_TOKEN', RPA_MSG_TOKEN); }
 try {
   const spy = document.createElement('script');
-  spy.src = chrome.runtime.getURL('js/injected_d.js');
+  spy.src = chrome.runtime.getURL('js/customer_system_interceptor.js');
   spy.onload = () => spy.remove();
   (document.head || document.documentElement).appendChild(spy);
 } catch (e) { console.warn('[SPoG:CustomerD] 스파이 주입 준비 중...'); }

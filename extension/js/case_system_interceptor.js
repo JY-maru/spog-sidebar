@@ -1,9 +1,9 @@
-// injected_b.js
-// [PSEUDOCODE] System B(케이스관리) 페이지의 메인 월드에 동적 주입되는 스파이
+// case_system_interceptor.js
+// [MOCK] 케이스 관리 시스템 페이지의 메인 월드에 동적 주입되는 스파이
 // 스크립트. 콘텐츠 스크립트는 격리된 월드에서 실행되어 페이지의 fetch/XHR
 // 호출을 직접 가로챌 수 없으므로, 이 스크립트가 페이지 컨텍스트에서
-// fetch/XHR을 몽키패치해 필요한 API 응답만 골라 postMessage로 content_b.js에
-// 전달한다. 토큰(__spogToken)은 content_b.js가 세션당 1회 발급한 값을 그대로
+// fetch/XHR을 몽키패치해 필요한 API 응답만 골라 postMessage로 case_system_driver.js에
+// 전달한다. 토큰(__spogToken)은 case_system_driver.js가 세션당 1회 발급한 값을 그대로
 // 붙여보내 위조 메시지를 막는다.
 
 const RPA_MSG_TOKEN = sessionStorage.getItem('SPOG_MSG_TOKEN');

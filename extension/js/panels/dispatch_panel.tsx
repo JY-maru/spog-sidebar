@@ -1,5 +1,5 @@
 // panels/dispatch_panel.tsx
-// [PSEUDOCODE] 🚗 예약/배차 자동화 패널 — 원버튼 자동화 3종(예약블록 생성/
+// [MOCK] 🚗 예약/배차 자동화 패널 — 원버튼 자동화 3종(예약블록 생성/
 // 고객 예약 생성/후보 리소스 검색)을 하나의 패널에 담는다. 실제 원본에서는
 // 관련 조회, 예약변경, 후보 리소스 검색, 추적 확인이 각각 독립된 패널
 // 컴포넌트(+ 각자의 로컬 zustand 스토어)였지만(message_router.ts와 DOM을
@@ -70,11 +70,11 @@ function SearchProgressBar() {
 // ── 원버튼 자동화 1: 예약블록 생성 (✍️ 쓰기) ──
 function createReservationBlock(resId: string) {
   if (!resId) return window.UiController.showToast('예약번호를 입력해주세요.', 'warning');
-  window.UiController.updateStatus('System C로 이동해 예약블록을 생성합니다...', 'pending');
+  window.UiController.updateStatus('예약·배차 시스템으로 이동해 예약블록을 생성합니다...', 'pending');
   chrome.runtime.sendMessage({ type: 'REQ_CREATE_RESERVATION_BLOCK', resId });
 }
 
-// ── 원버튼 자동화 2: 고객 예약 생성 (✍️ 쓰기, 완료 후 System D 자동 연쇄) ──
+// ── 원버튼 자동화 2: 고객 예약 생성 (✍️ 쓰기, 완료 후 고객 응대 시스템 자동 연쇄) ──
 function executeReservation(resId: string, blockResId: string) {
   if (!resId || !blockResId) return window.UiController.showToast('예약번호와 예약블록 번호를 모두 입력해주세요.', 'warning');
   window.UiController.updateStatus('예약 변경 처리 중...', 'pending');

@@ -1,5 +1,5 @@
 // panels/postcare_panel.tsx
-// [PSEUDOCODE] 🗂️ 사후관리 패널 — 결과 로그 시트(쓰기 전용) 확인 + 사진 검수
+// [MOCK] 🗂️ 사후관리 패널 — 결과 로그 시트(쓰기 전용) 확인 + 사진 검수
 // 배치 스캔 트리거. SCAN_BATCH_COMPLETE/SCAN_ALERT는 message_router.ts가
 // React 트리 밖(백그라운드 이벤트)에서 이 패널 상태를 갱신해야 하므로 로컬
 // zustand 스토어로 분리되어 있던 원본 구조를 그대로 반영한다.
@@ -22,7 +22,7 @@ function showMsg(text: string, tone: string | undefined, durationMs: number) {
 }
 
 // ── 지금 바로 검수 스캔 버튼 — 대기건 조회 후 없으면 즉시 종료, 있으면
-//    배치 스캔을 시작하고 SCAN_BATCH_COMPLETE(비동기, 여러 System B 탭을
+//    배치 스캔을 시작하고 SCAN_BATCH_COMPLETE(비동기, 여러 케이스 관리 시스템 탭을
 //    거쳐 나중에 도착)를 기다린다. ──
 async function executeImageScan() {
   postcareStore.setState({ scanning: true, scanStep: 1 });
