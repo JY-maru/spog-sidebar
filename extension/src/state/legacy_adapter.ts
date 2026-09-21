@@ -8,14 +8,17 @@
 import { sharedStore, type StateKey } from './store';
 
 export const legacyStateManager = {
-  get(key: string) { guard(key); return sharedStore.getState()[key as StateKey]; },
-  set(key: string, value: unknown) { guard(key); sharedStore.setState({ [key]: value }); },
+  get(key: string) { return isDeclared(key) ? sharedStore.getState()[key as StateKey] : undefined; },
+  set(key: string, value: unknown) { if (isDeclared(key)) sharedStore.setState({ [key]: value }); },
 
   // 객체 상태의 부분 병합만 허용한다. 배열·원시값이면 경고 후 무시한다.
   update(key: string, partial: object) { /* 객체면 병합, 아니면 경고 후 무시 */ },
 };
 
-// 선언되지 않은 키는 차단하지 않고 경고만 남긴다(레거시 호출부 호환).
-function guard(key: string) {
-  if (!(key in sharedStore.getState())) console.warn(`[StateManager] 알 수 없는 상태 키: ${key}`);
+// 스토어에 선언된 키만 통과시킨다. 선언되지 않은 키는 읽기·쓰기 모두 무시하고
+// 콘솔에만 남긴다 — 레거시 호출부가 예외로 멈추지 않도록 반환값으로만 알린다.
+function isDeclared(key: string): boolean {
+  if (key in sharedStore.getState()) return true;
+  console.warn(`[StateManager] 선언되지 않은 상태 키: ${key} — 무시함`);
+  return false;
 }

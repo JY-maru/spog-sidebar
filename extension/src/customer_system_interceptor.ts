@@ -3,8 +3,12 @@
 //
 // 이 시스템은 인바운드 문의를 주기적으로 폴링한다. 확장은 폴링을 추가하지 않고,
 // 페이지가 이미 보내는 요청의 응답을 읽는다.
+//
+// 이 파일은 신원을 다루지 않는다. 사용자 식별자(loginId)는 격리 월드가 확장 자신의
+// 세션 조회로 얻어 허브에 올린다 — 메인 월드를 거치는 경로는 없다.
 
-(function () {
+(function (nonce: string) {
+  const CHANNEL = `customer-intercept:${nonce}`; // 주입 시점에 건네받은 1회용 nonce
   const originalFetch = window.fetch;
 
   window.fetch = async (...args) => {
@@ -12,18 +16,13 @@
 
     if (isInboundPoll(urlOf(args)) && res.ok) {
       const payload = await res.clone().json();
-      window.postMessage({
-        type: 'INBOUND_CALLBACK',
-        calls: payload.items.map(pickNeededFields),
-      }, location.origin);
-    }
-
-    // 사용자 식별자는 허브의 백엔드 폴링에 쓰이며 한 번만 넘긴다.
-    if (isSessionInfo(urlOf(args)) && res.ok) {
-      const me = await res.clone().json();
-      window.postMessage({ type: 'INTERCEPTED_AGENT_INFO', loginId: me.loginId }, location.origin);
+      window.dispatchEvent(new CustomEvent(CHANNEL, {
+        detail: { type: 'INBOUND_CALLBACK', calls: payload.items.map(pickNeededFields) },
+      }));
     }
 
     return res;
   };
-})();
+})(INJECTED_NONCE);
+
+declare const INJECTED_NONCE: string;

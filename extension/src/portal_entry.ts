@@ -12,9 +12,12 @@ function init(): void {
             RPA_APP_CONFIG.TIMEOUT.WIDGET_INJECT);
 }
 
+// 포털의 업무 화면 경로에서만 사이드바를 띄운다. manifest의 matches도 같은
+// 경로 접두사로 좁혀 두어, 주입 범위와 이 판정이 같은 집합을 가리킨다.
+const SIDEBAR_PATHS = [/^\/intake(\/|$)/, /^\/cases(\/|$)/];
+
 function isSidebarTarget(loc: Location): boolean {
-  // 포털의 특정 업무 화면에서만 사이드바를 띄운다 (경로 패턴 판단)
-  return /* 경로 패턴 일치 */ true;
+  return SIDEBAR_PATHS.some((re) => re.test(loc.pathname));
 }
 
 init();

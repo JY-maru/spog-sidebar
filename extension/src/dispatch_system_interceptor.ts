@@ -4,7 +4,8 @@
 //
 // 이 시스템은 목록 조회를 XHR로도 보내므로 fetch와 XHR 둘 다 감싼다.
 
-(function () {
+(function (nonce: string) {
+  const CHANNEL = `dispatch-intercept:${nonce}`; // 주입 시점에 건네받은 1회용 nonce
   const originalFetch = window.fetch;
   window.fetch = async (...args) => {
     const res = await originalFetch(...args);
@@ -21,6 +22,8 @@
   };
 
   function relay(type, payload) {
-    window.postMessage({ type, payload: pickNeededFields(payload) }, location.origin);
+    window.dispatchEvent(new CustomEvent(CHANNEL, { detail: { type, payload: pickNeededFields(payload) } }));
   }
-})();
+})(INJECTED_NONCE);
+
+declare const INJECTED_NONCE: string;

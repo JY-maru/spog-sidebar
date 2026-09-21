@@ -23,19 +23,29 @@ function GET_BULLETIN_DETAIL({ bulletinId }: { bulletinId: string }) {
 }
 
 // ── 쓰기: 멱등 처리 ────────────────────────────────────────────
-// 확장이 실패를 짧게 재시도하므로 같은 요청이 두 번 도착할 수 있다.
-// 이미 목표 상태이면 성공으로 응답해 재시도를 안전하게 만든다.
-function TOGGLE_BULLETIN_PIN({ loginId, bulletinId, pinned }: PinRequest) {
-  const row = findRow(bulletinId);
-  if (row.pinned === pinned) return ok();   // 이미 원하는 상태 → 그대로 성공
-  writeRow(bulletinId, { pinned });
-  invalidate(listCache, loginId);            // 다음 폴링이 새 값을 보게 한다
-  return ok();
+// 모든 쓰기는 클라이언트가 만든 idempotencyKey를 달고 온다. 재시도는 같은 키로
+// 오므로, 키를 한 번 본 뒤에는 저장된 응답을 그대로 돌려주고 반영은 하지 않는다.
+const seenWrites = new Map<string, unknown>(); // idempotencyKey → 첫 응답 (쓰기 TTL)
+
+function deduped<T>(key: string, apply: () => T): T {
+  if (seenWrites.has(key)) return seenWrites.get(key) as T; // 이미 반영된 요청
+  const result = apply();
+  seenWrites.set(key, result);
+  return result;
 }
 
-// TOGGLE_BULLETIN_READ, REORDER_BULLETIN_PINS도 같은 모양 — 전부 멱등.
+function TOGGLE_BULLETIN_PIN({ loginId, bulletinId, pinned, idempotencyKey }: PinRequest) {
+  return deduped(idempotencyKey, () => {
+    writeRow(bulletinId, { pinned });
+    invalidate(listCache, loginId);          // 다음 폴링이 새 값을 보게 한다
+    return ok();
+  });
+}
 
-interface PinRequest { loginId: string; bulletinId: string; pinned: boolean }
+// TOGGLE_BULLETIN_READ, REORDER_BULLETIN_PINS도 같은 모양 — deduped()로 감싼다.
+// 순서 자체를 바꾸는 REORDER_BULLETIN_PINS는 키 단위 1회 반영에 의존한다.
+
+interface PinRequest { loginId: string; bulletinId: string; pinned: boolean; idempotencyKey: string }
 
 declare function cached<T>(store: Map<string, unknown>, key: string, load: () => T): T;
 declare function invalidate(store: Map<string, unknown>, key: string): void;

@@ -17,7 +17,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost:8081/*"],
+      "matches": ["http://localhost:8081/intake/*", "http://localhost:8081/cases/*"],
       "js": [
         "src/config.ts",
         "src/state/store.ts",

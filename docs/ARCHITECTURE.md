@@ -42,7 +42,8 @@
 | 추적 상태 | `state/tracking_store.ts` | Zustand 5 | 폴링(스캔)으로만 확인 가능한 외부 데이터를 톰스톤+스코프 한정 병합으로 깜빡임 없이 추적 |
 | 게시판 상태 | `state/bulletin_store.ts` | Zustand 5 | 낙관적 업데이트 + 실패 시 롤백, 본문 온디맨드 조회 |
 | 레거시 호환 파사드 | `state/legacy_adapter.ts` | TypeScript | 기존 호출부가 옛 `window.StateManager.get/set` API를 그대로 쓸 수 있게 함 |
-| 메시지 검증 | `message_router.ts` | TypeScript + zod | 메시지 타입별 스키마 검증 + 3단계 오리진 검증(self/embed-sandbox/trusted-list) |
+| 메시지 검증 | `message_router.ts` | TypeScript + zod | 메시지 타입별 스키마 검증 + 타입마다 선언된 발신자 부류(self/embed-sandbox/extension) 판정 |
+| 발신자 인가 | `background/service_worker.ts` | TypeScript | 허브 단일 수신구 앞의 동결 표 — 오리진→역할, 역할→허용 메시지 타입 |
 | 백엔드(경량) | `backend/mock_sidebar_webhook.ts` | TypeScript | 스프레드시트+스크립트 런타임 흉내 — 목록/본문 이중 캐시, 멱등 쓰기 핸들러 |
 
 ## 2. 모듈 구조 (포털 탭 기준)
@@ -60,7 +61,7 @@
 | Parsers | `text_parser.ts` | TS | 비정형 접수양식 텍스트를 라벨 매칭으로 구조화 필드로 변환 |
 | Parsers | `dom_parser.ts` | TS | 다른 시스템의 HTML 표를 헤더 텍스트로 동적 매핑 |
 | Domain engine | `candidate_search.ts` | TS | 거리 계산·후보 필터링·스코어링만 담당하는 순수 함수(DOM 비의존) |
-| Bridge / Bus | `message_router.ts` | TS + zod | 타입드 메시지 레지스트리 — 스키마·오리진·타임아웃 가드를 한 곳에서 담당 |
+| Bridge / Bus | `message_router.ts` | TS + zod | 타입드 메시지 레지스트리 — 스키마·발신자·타임아웃 가드를 한 곳에서 담당 |
 | Panels | `src/panels/*.tsx` (6개) | TS + React + Zustand | 패널별 컴포넌트 + 전용 로컬 스토어 |
 | UI 셸 | `ui_controller.ts` | TS | 인터럽트 vs 앰비언트 판단, MV3 재시작 복구 — React로 안 옮겨진 레거시 코어 |
 | Entry point | `portal_entry.ts` | TS | `MessageRouter.init()` → `UiController.init()` 순서로 초기화만 수행 |
@@ -99,60 +100,77 @@ sequenceDiagram
     participant Iframe as 임베드 폼(iframe)
 
     Page->>Inject: POST /api/cases 응답
-    Inject-->>Content: window.postMessage(INTERCEPTED_DETAIL)
+    Inject-->>Content: CustomEvent(nonce 채널, INTERCEPTED_DETAIL)
     Content->>BG: chrome.runtime.sendMessage(CASE_CREATED)
     BG->>Router: chrome.tabs.sendMessage(포털 탭)
     Note over BG,Router: 여기서 포털 탭도 chrome.tabs.update로<br/>다시 전면에 포커스된다 (focusA)
     Router->>Router: state 반영 + 케이스 패널 강제 전환
 ```
 
-**3-1. 페이지 컨텍스트 ↔ 콘텐츠 스크립트** — 콘텐츠 스크립트는 격리된 월드(isolated world)에서 실행되어 페이지의 `window.fetch`에 접근할 수 없습니다. `<script src="...">`로 페이지 컨텍스트(MAIN world)에 스크립트를 주입해 `fetch` 응답을 가로채고, `window.postMessage`로 되돌려줍니다.
+**3-1. 페이지 컨텍스트 ↔ 콘텐츠 스크립트** — 콘텐츠 스크립트는 격리된 월드(isolated world)에서 실행되어 페이지의 `window.fetch`에 접근할 수 없습니다. `chrome.scripting.executeScript({ world: 'MAIN', args: [nonce] })`로 페이지 컨텍스트(MAIN world)에 스크립트를 주입해 `fetch` 응답을 가로채고, 주입 시점에 건넨 1회용 nonce로 이름 지은 채널의 `CustomEvent`로 되돌려줍니다. 격리 월드는 그 채널만 듣습니다. 신원(loginId)은 이 경로를 쓰지 않고 격리 월드가 확장 자신의 세션 조회로 얻습니다.
 
 ```js
 // case_system_interceptor.ts — 페이지 컨텍스트(MAIN world)에서 실행
+const CHANNEL = `case-intercept:${INJECTED_NONCE}`  // 주입 시점에 건네받은 1회용 nonce
 const originalFetch = window.fetch
 window.fetch = async (...args) => {
   const response = await originalFetch(...args)
   if (isCaseDetail(urlOf(args)) && response.ok) {
     const payload = await response.clone().json()   // clone — 페이지 쪽 소비를 방해하지 않는다
-    window.postMessage({
-      type: 'INTERCEPTED_CASE',
-      payload: pickNeededFields(payload),           // 필요한 필드만 넘긴다
-    }, location.origin)                             // 와일드카드 대신 자기 오리진으로 한정
+    window.dispatchEvent(new CustomEvent(CHANNEL, {
+      detail: { type: 'INTERCEPTED_CASE', payload: pickNeededFields(payload) }, // 필요한 필드만
+    }))
   }
   return response
 }
 ```
 
-**3-2. 콘텐츠 스크립트 ↔ 임베드 iframe** — 포털 페이지엔 접수양식 폼이 iframe으로 임베드돼 있습니다. 별도 요청 ID 체계 없이 **"kind로 매칭 + 타임아웃 시 null 반환"**하는 Promise 래퍼로 요청/응답을 짝짓습니다(동시 1건 대기 전제 — §9 참고). iframe은 별도 샌드박스 도메인이라 `validatePostOrigin(event, 'embed-sandbox')`로 오리진을 검증한 뒤에만 신뢰합니다.
+**3-2. 콘텐츠 스크립트 ↔ 임베드 iframe** — 포털 페이지엔 접수양식 폼이 iframe으로 임베드돼 있습니다. 요청마다 nonce를 만들어 **"nonce로 매칭 + 타임아웃 시 null 반환"**하는 Promise 래퍼로 요청/응답을 짝짓습니다. iframe은 별도 샌드박스 도메인이라, 상수 오리진과 완전 일치하고 그 프레임이 직접 보낸 응답만 받고 요청도 그 오리진으로만 보냅니다.
 
 ```js
 // message_router.ts
 function requestFromEmbedFrame(kind, timeoutMs) {
   return new Promise((resolve) => {
+    const nonce = crypto.randomUUID()
     const timer = setTimeout(() => { cleanup(); resolve(null) }, timeoutMs)
     function onMessage(event) {
-      if (!isAllowedOrigin(event.origin, 'embed-sandbox')) return
+      if (!isAllowedOrigin(event.origin, 'embed-sandbox')) return   // 상수와 완전 일치
+      if (event.source !== embedFrameWindow) return
       const msg = event.data
-      if (msg?.type === 'RESPONSE_DATA' && msg.kind === kind) {
+      if (msg?.type === 'RESPONSE_DATA' && msg.nonce === nonce) {
         clearTimeout(timer); cleanup(); resolve(msg.payload)
       }
     }
     function cleanup() { window.removeEventListener('message', onMessage) }
     window.addEventListener('message', onMessage)
-    embedFrameWindow.postMessage({ type: 'REQUEST_DATA', kind }, '*')
+    embedFrameWindow.postMessage({ type: 'REQUEST_DATA', kind, nonce }, EMBED_SANDBOX_ORIGIN)
   })
 }
 ```
 
 **3-3. 콘텐츠 스크립트 ↔ 백그라운드 ↔ 다른 탭 — 허브 앤 스포크** — 서로 다른 탭의 콘텐츠 스크립트는 직접 통신할 수 없어, 백그라운드 서비스워커가 허브 역할을 합니다.
 
+허브의 수신구는 하나이고, 그 앞에 발신자 인가 계층이 있습니다. 동결된 두 표가 **오리진 → 역할**, **역할 → 허용 메시지 타입 집합**을 정의하고, 이 확장이 보낸 최상위 프레임의 메시지 중 표에 적힌 조합만 핸들러로 넘어갑니다. 핸들러를 늘리려면 누가 부를 수 있는지를 표에 먼저 적어야 합니다.
+
 ```js
-// background/service_worker.ts — 타입별로 개별 리스너를 등록하는 방식
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type !== 'INTERCEPTED_CASE') return false
-  broadcastToPortal(msg) // 포털 탭 전체에 push
-  sendLog({ step: 'case_created', caseId: msg.caseId, at: new Date().toISOString() })
+// background/service_worker.ts — 단일 수신구 + 동결 인가 표
+const ROLE_BY_ORIGIN = Object.freeze({ 'http://localhost:8081': 'portal', /* case/dispatch/customer */ })
+const ALLOWED_TYPES = Object.freeze({
+  portal: new Set(['REQ_CREATE_CASE', 'REQ_CREATE_RESERVATION_BLOCK', 'REQ_DISPATCH_EXECUTE', 'REQ_BULLETIN_WRITE', 'REQUEST_STATE']),
+  case: new Set(['INTERCEPTED_CASE', 'CASE_CREATED']),
+  // dispatch, customer도 같은 모양
+})
+
+function authorize(msg, sender) {
+  if (sender.id !== chrome.runtime.id) return null
+  if (sender.frameId !== 0) return null                       // 최상위 프레임만
+  const role = ROLE_BY_ORIGIN[originOf(sender.url)]
+  return role && ALLOWED_TYPES[role].has(msg?.type) ? role : null
+}
+
+chrome.runtime.onMessage.addListener((msg, sender) => {
+  if (!authorize(msg, sender)) return false
+  hubHandlers.get(msg.type)?.(msg, sender)
   return false
 })
 ```
@@ -161,10 +179,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 ```js
 // message_router.ts
-register('INTERCEPTED_CASE', CaseSchema, handleInterceptedCase)
+register('INTERCEPTED_CASE', CaseSchema, 'extension', handleInterceptedCase)  // 타입마다 허용 발신자 부류를 선언
 ```
 
-> `service_worker.ts`는 시스템 간 중계를, `message_router.ts`는 스키마·오리진·타임아웃 가드를 담당합니다 — 두 계층의 책임이 다르므로 분배 방식도 다릅니다.
+> `service_worker.ts`는 발신자 인가와 시스템 간 중계를, `message_router.ts`는 스키마·발신자·타임아웃 가드를 담당합니다 — 두 계층의 책임이 다르므로 분배 방식도 다릅니다.
 
 ## 4. 상태 관리: 2단 상태 설계
 
@@ -174,8 +192,8 @@ register('INTERCEPTED_CASE', CaseSchema, handleInterceptedCase)
 ```ts
 // state/legacy_adapter.ts — 화이트리스트 가드가 있는 구버전 호환 파사드
 export const legacyStateManager = {
-  get(key: string) { _guard(key); return sharedStore.getState()[key as StateKey] },
-  set(key: string, value: unknown) { _guard(key); sharedStore.setState({ [key]: value }) },
+  get(key: string) { return isDeclared(key) ? sharedStore.getState()[key as StateKey] : undefined },
+  set(key: string, value: unknown) { if (isDeclared(key)) sharedStore.setState({ [key]: value }) },
   update(key: string, partial: object) { /* 객체 상태만 부분 병합 — 배열/원시값이면 경고 후 무시 */ },
 }
 ```
@@ -247,7 +265,7 @@ sequenceDiagram
     end
 ```
 
-"값이 비어 있으면 중단"은 시스템 간 공유 트랜잭션이 없기 때문에, 확장 스스로 정합성을 검증하고 불일치 시 자동화를 중단시키는 방어 로직입니다.
+"값이 비어 있으면 중단"은 확장이 단계마다 정합성을 검증하고, 불일치 시 자동화를 중단시키는 방어 로직입니다.
 
 ## 8. 설계 결정과 트레이드오프
 
@@ -255,9 +273,11 @@ sequenceDiagram
 |---|---|
 | 콘텐츠 스크립트 간 직접 통신 금지, 백그라운드 허브 강제 | 탭 간 결합도를 낮춰 "차량 배차 시스템 어댑터가 사고 관리 시스템의 존재를 몰라도 되게" 만듦 |
 | `Object.freeze`로 동결된 단일 config 모듈 + `globalThis` 공유 | 서비스워커/콘텐츠 스크립트 양쪽에서 같은 상수를 참조, 중복 방지 |
-| 상관관계 ID 없는 Promise+타임아웃 기반 iframe 요청 | 동시 1건 대기 전제하에 충분히 안전하고, 요청-ID 체계보다 단순 |
-| 상태 스토어의 화이트리스트 가드 | TS 없이도 오타로 인한 "조용한 실패"를 콘솔 경고로 드러냄 |
-| 백그라운드가 진행 상태를 재broadcast | MV3 서비스워커 재시작을 전제로, UI가 "다시 물어서" 복구 |
+| 요청별 nonce + 타임아웃 기반 iframe 요청 | 요청과 응답을 1:1로 묶고, 응답은 샌드박스 오리진의 그 프레임에서 온 것만 받음 |
+| 상태 스토어의 화이트리스트 가드 | 스토어에 선언된 키만 읽고 쓰며, 선언되지 않은 키는 무시하고 콘솔에 남김 |
+| 신원은 `chrome.storage.session` + 유휴 타이머(SECURITY_LOCK) 해제 | 케이스 데이터와 같은 수명 규칙을 신원에도 적용 |
+| 쓰기마다 클라이언트 생성 멱등 키 | 재시도가 같은 키로 나가고 백엔드가 키 단위로 한 번만 반영 |
+| 백그라운드가 진행 상태를 재broadcast | MV3 서비스워커가 재시작돼도 UI가 "다시 물어서" 복구 |
 | 순수 도메인 로직을 DOM 파서와 분리 | 거리/스코어링 로직이 DOM 없이도 테스트 가능해야 한다는 원칙 |
 | 대상 탭을 항상 전면으로 가져와 처리 | 자동 연쇄까지도 탭 전환으로 보여주는 게 시스템 통합을 드러내는 데 중요 |
 | 후보 검색: 잠금 대신 세대(generation) 카운터 | 응답 대기 중 다음 요청이 가면 이전 응답은 이미 쓸모없어짐 — 잠그는 대신 세대 번호로 오래된 응답을 가려냄 |
@@ -269,7 +289,7 @@ sequenceDiagram
 - **의사코드** — `extension/` 아래 파일은 흐름과 설계 의도만 담고 있어 그대로 실행되지 않습니다. 구현 본문은 주석으로 대체했습니다.
 - **모듈 로딩** — 레거시 스크립트는 전역 네임스페이스를 통해 서로를 참조하고, 로드 순서는 `manifest.json` 배열이 정합니다. 실제 배포에서는 번들러가 이 순서를 고정합니다.
 - **테스트** — 의사코드라 실행 테스트가 없습니다. 실제 구현으로 옮긴다면 DOM에 의존하지 않는 부분(`candidate_search.ts`의 거리·스코어링)이 먼저 테스트 대상이 됩니다.
-- **임베드 브리지** — 동시 1건 대기를 전제로 한 단순화입니다. 동시 다발 요청이 필요한 환경이라면 상관관계 ID를 도입하는 설계가 됩니다.
+- **임베드 브리지** — 요청별 nonce와 타임아웃으로 요청/응답을 1:1로 짝짓습니다. 응답은 샌드박스 오리진의 해당 프레임에서 온 것만 받습니다.
 
 ## 데모 시나리오
 

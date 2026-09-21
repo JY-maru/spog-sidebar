@@ -5,7 +5,11 @@
 // 잠금 대신 세대(generation) 카운터를 쓴다. 불변식: 화면에 남는 것은 항상
 // 마지막 요청의 결과다.
 
-injectScript('src/dispatch_system_interceptor.ts');
+// 주입 시 1회용 nonce를 건네고, 그 nonce로 이름 지은 채널로만 결과를 받는다
+// (chrome.scripting.executeScript({ world: 'MAIN', args: [NONCE] }).
+const NONCE = crypto.randomUUID();
+injectScript('src/dispatch_system_interceptor.ts', NONCE);
+onInterceptorEvent(`dispatch-intercept:${NONCE}`, sendToHub);
 
 let searchGeneration = 0;
 

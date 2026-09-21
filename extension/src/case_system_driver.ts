@@ -6,7 +6,10 @@
 // 후처리 규칙이 평소와 동일하게 적용된다.
 
 // 메인 월드 인터셉터를 주입한다 — 격리 월드는 페이지의 fetch를 볼 수 없다.
-injectScript('src/case_system_interceptor.ts');
+// 주입할 때 1회용 nonce를 함께 건네고, 그 nonce로 이름 지은 채널로만 결과를 받는다.
+// chrome.scripting.executeScript({ world: 'MAIN', args: [NONCE] })로 주입한다.
+const NONCE = crypto.randomUUID();
+injectScript('src/case_system_interceptor.ts', NONCE);
 
 // ── 명령 수신 ──────────────────────────────────────────────────
 onCommand('DO_CREATE_CASE', async ({ fields }) => {
@@ -48,10 +51,10 @@ async function findElement(selector: string, timeoutMs = RPA_APP_CONFIG.TIMEOUT.
 }
 
 // ── 메인 월드 → 이 스크립트 릴레이 ────────────────────────────
-// 자기 오리진에서 온 메시지만 받는다.
-window.addEventListener('message', (e: MessageEvent) => {
-  if (e.origin !== location.origin) return;
-  if (e.data?.type === 'INTERCEPTED_CASE') sendToHub(e.data);
+// nonce로 이름 지은 채널만 듣는다 — 이 주입이 건넨 nonce를 아는 쪽의 이벤트만 도달한다.
+window.addEventListener(`case-intercept:${NONCE}`, (e: Event) => {
+  const msg = (e as CustomEvent).detail;
+  if (msg?.type === 'INTERCEPTED_CASE') sendToHub(msg);
 });
 
 type SearchResult =

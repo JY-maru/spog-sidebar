@@ -4,7 +4,15 @@
 // 이 파일이 보여주는 것: "사용자가 아무것도 누르지 않는 자동 연계".
 // 예약이 생성되면 허브가 이 탭을 대신 방문해 응대 메모까지 채운다.
 
-injectScript('src/customer_system_interceptor.ts');
+// 주입 시 1회용 nonce를 건네고, 그 nonce로 이름 지은 채널로만 결과를 받는다
+// (chrome.scripting.executeScript({ world: 'MAIN', args: [NONCE] }).
+const NONCE = crypto.randomUUID();
+injectScript('src/customer_system_interceptor.ts', NONCE);
+onInterceptorEvent(`customer-intercept:${NONCE}`, sendToHub);
+
+// 사용자 식별자는 격리 월드에서 확장 자신의 세션 조회로 얻어 허브에 한 번 올린다.
+// 페이지를 거치지 않는 경로이므로 메인 월드 인터셉터는 신원을 모른다.
+fetchSessionInfo().then(({ loginId }) => sendToHub({ type: 'INTERCEPTED_AGENT_INFO', loginId }));
 
 // 허브가 자동 연쇄로 보낸 명령 — 사용자 클릭이 없다.
 onCommand<ReservationMemo>('DO_APPLY_RESERVATION_TO_MEMO', async (msg) => {
