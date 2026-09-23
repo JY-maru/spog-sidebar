@@ -1,0 +1,12 @@
+.claude/
+.DS_Store
+*.log
+*.pid
+.mcp.json
+package.json
+
+# Added by code-review-graph
+.code-review-graph/
+
+# graphify analysis output (regenerable)
+graphify-out/

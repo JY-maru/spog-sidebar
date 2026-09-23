@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "SPoG Sidebar — 접수 자동화 파이프라인",
+  "version": "0.1.0",
+  "description": "4개의 서로 연동되지 않는 사내 시스템(포털/케이스 관리/예약·배차 관리/고객 응대)을 하나의 사이드바로 이어붙여 접수양식 → 접수 카드 생성 → 예약·배차 자동화 → 고객 응대 반영 → 로그 기록을 자동화하는 포트폴리오 데모.",
+  "permissions": ["tabs", "scripting", "storage"],
+  "host_permissions": [
+    "http://localhost:8081/*",
+    "http://localhost:8082/*",
+    "http://localhost:8083/*",
+    "http://localhost:8084/*",
+    "http://localhost:8085/*",
+    "http://localhost:8086/*"
+  ],
+  "background": {
+    "service_worker": "background/service_worker.ts"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:8081/intake/*", "http://localhost:8081/cases/*"],
+      "js": [
+        "src/config.ts",
+        "src/state/store.ts",
+        "src/state/legacy_adapter.ts",
+        "src/state/index.ts",
+        "src/text_parser.ts",
+        "src/dom_parser.ts",
+        "src/candidate_search.ts",
+        "src/message_router.ts",
+        "src/ui_controller.ts",
+        "src/panels/inbound_panel.tsx",
+        "src/panels/case_panel.tsx",
+        "src/panels/dispatch_panel.tsx",
+        "src/panels/postcare_panel.tsx",
+        "src/panels/settings_panel.tsx",
+        "src/portal_entry.ts"
+      ],
+      "_comment": "실제 원본은 state/index.ts와 message_router.ts+panels/*.tsx가 서로 다른 빌드 타깃(정적 state 번들 / 패널 번들)으로 각각 사전 컴파일된 결과물을 로드한다 — 이 목록은 소스 단위 의존 순서를 보여주기 위한 것이며 그대로 실행되지 않는다.",
+      "css": ["styles/sidebar.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:8082/*"],
+      "js": ["src/config.ts", "src/case_system_driver.ts"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:8083/*"],
+      "js": ["src/config.ts", "src/dom_parser.ts", "src/candidate_search.ts", "src/dispatch_system_driver.ts"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:8084/*"],
+      "js": ["src/config.ts", "src/customer_system_driver.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/case_system_interceptor.ts", "src/dispatch_system_interceptor.ts", "src/customer_system_interceptor.ts"],
+      "matches": ["http://localhost:8082/*", "http://localhost:8083/*", "http://localhost:8084/*"]
+    }
+  ]
+}

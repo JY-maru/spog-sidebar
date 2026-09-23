@@ -1,0 +1,584 @@
+/* 2컬럼 사이드바: 아이콘 레일(56px 고정) + 콘텐츠 패널(가변). */
+
+#spog-sidebar {
+  --bg-main:    #0F172A;
+  --bg-nav:     #080D1A;
+  --bg-card:    rgba(255,255,255,0.06);
+  --bg-input:   rgba(255,255,255,0.08);
+  --border:     rgba(255,255,255,0.15);
+  --text-pri:   #F8FAFC;
+  --text-sec:   #94A3B8;
+  --accent:     #3B82F6;
+  --accent-dim: rgba(59,130,246,0.18);
+  --danger:     #EF4444;
+  --ok:         #10B981;
+  --warn:       #F59E0B;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  display: flex;
+  width: 56px;
+  border-radius: 0 20px 20px 0;
+  box-shadow: 6px 0 40px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 2147483000;
+}
+
+#spog-sidebar.open {
+  width: 320px;
+}
+
+#spog-sidebar[data-theme="light"] {
+  --bg-main:    #F8FAFC;
+  --bg-nav:     #F1F5F9;
+  --bg-card:    rgba(0,0,0,0.03);
+  --bg-input:   rgba(0,0,0,0.05);
+  --border:     rgba(0,0,0,0.08);
+  --text-pri:   #0F172A;
+  --text-sec:   #64748B;
+  --accent:     #2563EB;
+  --accent-dim: rgba(37,99,235,0.10);
+  --danger:     #DC2626;
+  --ok:         #059669;
+  --warn:       #D97706;
+}
+
+#spog-sidebar * {
+  box-sizing: border-box;
+}
+
+/* ── 아이콘 레일 ── */
+#spog-sidebar .rail {
+  width: 56px;
+  flex-shrink: 0;
+  background: var(--bg-nav);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0 10px;
+}
+
+#spog-sidebar .rail-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+#spog-sidebar .rail-logo:hover {
+  transform: scale(1.07);
+}
+
+#spog-sidebar .rail-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 16px 8px 0;
+}
+
+#spog-sidebar .rail-item {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-sec);
+  cursor: pointer;
+  font-size: 17px;
+  transition: background 0.18s, color 0.18s;
+  flex-shrink: 0;
+}
+
+#spog-sidebar .rail-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-pri);
+}
+
+#spog-sidebar .rail-item.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+#spog-sidebar .rail-item::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--text-pri);
+  color: var(--bg-main);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+#spog-sidebar .rail-item:hover::after {
+  opacity: 1;
+}
+
+#spog-sidebar .badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+#spog-sidebar .track-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+  display: none;
+  animation: spog-pulse 2s ease-in-out infinite;
+}
+
+#spog-sidebar .track-dot.active {
+  display: block;
+}
+
+@keyframes spog-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+#spog-sidebar .rail-footer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+#spog-sidebar .rail-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-sec);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.18s, color 0.18s;
+  position: relative;
+}
+
+#spog-sidebar .rail-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-pri);
+}
+
+#spog-sidebar .theme-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  cursor: pointer;
+}
+
+#spog-sidebar .theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+#spog-sidebar .theme-slider {
+  position: absolute;
+  inset: 0;
+  background: #1e293b;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  transition: background 0.3s;
+}
+
+#spog-sidebar .theme-slider::before {
+  content: "🌙";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  transition: transform 0.3s;
+}
+
+#spog-sidebar .theme-switch input:checked + .theme-slider {
+  background: #0fbcf9;
+}
+
+#spog-sidebar .theme-switch input:checked + .theme-slider::before {
+  content: "☀️";
+  transform: translateY(-50%) translateX(14px);
+}
+
+#spog-sidebar .profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+#spog-sidebar .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+#spog-sidebar .profile-name {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-sec);
+}
+
+#spog-sidebar .collapse-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-sec);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ── 콘텐츠 영역 ── */
+#spog-sidebar .content {
+  width: 264px;
+  flex-shrink: 0;
+  background: var(--bg-main);
+  color: var(--text-pri);
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+#spog-sidebar:not(.open) .content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#spog-sidebar .content-header {
+  padding: 13px 16px 11px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#spog-sidebar .eyebrow {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-sec);
+  display: block;
+}
+
+#spog-sidebar .title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-pri);
+  display: block;
+  margin-top: 1px;
+}
+
+#spog-sidebar .status-line {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-sec);
+  display: block;
+  margin-top: 3px;
+  transition: color 0.25s;
+}
+
+#spog-sidebar .status-line.ok { color: var(--ok); }
+#spog-sidebar .status-line.err { color: var(--danger); }
+
+#spog-sidebar .content-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+#spog-sidebar .panel {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#spog-sidebar .panel.active {
+  display: flex;
+}
+
+#spog-sidebar .panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#spog-sidebar .panel-header h1 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-pri);
+}
+
+#spog-sidebar .card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#spog-sidebar .card-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-sec);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* 쓰기(탭 방문+폼 제출)/읽기(API 응답 캡처) 구분 태그 — README §"쓰기/읽기 구분" 참고 */
+#spog-sidebar .kind-tag {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+#spog-sidebar .kind-tag.write {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+#spog-sidebar .kind-tag.read {
+  background: rgba(245, 158, 11, 0.16);
+  color: var(--warn);
+}
+
+#spog-sidebar .status-dot-row .kind-tag {
+  margin-left: auto;
+}
+
+#spog-sidebar .card-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#spog-sidebar .btn {
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-sec);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, transform 0.13s;
+}
+
+#spog-sidebar .btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-pri);
+}
+
+#spog-sidebar .btn:active {
+  transform: scale(0.97);
+}
+
+#spog-sidebar .btn.primary {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+#spog-sidebar .btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+#spog-sidebar .btn-row .btn {
+  flex: 1;
+}
+
+#spog-sidebar .chip {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+#spog-sidebar .chip-label {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--text-sec);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border);
+}
+
+#spog-sidebar .chip-val {
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-pri);
+  font-family: "SF Mono", ui-monospace, monospace;
+  overflow-wrap: break-word;
+}
+
+#spog-sidebar .spog-case-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#spog-sidebar .status-dot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-pri);
+}
+
+#spog-sidebar .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-sec);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+#spog-sidebar .status-dot.active {
+  background: var(--ok);
+  opacity: 1;
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.6);
+  animation: spog-pulse 2s ease-in-out infinite;
+}
+
+#spog-sidebar .status-dot.done {
+  background: var(--ok);
+  opacity: 1;
+  box-shadow: none;
+  animation: none;
+}
+
+#spog-sidebar .check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-pri);
+}
+
+#spog-sidebar .check-item input {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
+
+#spog-sidebar .spog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#spog-sidebar .spog-list li {
+  font-size: 11px;
+  color: var(--text-pri);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+#spog-sidebar .spog-list li:last-child {
+  border-bottom: none;
+}
+
+#spog-sidebar .card-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-sec);
+}
+
+#spog-sidebar .spog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+#spog-sidebar .spog-table th,
+#spog-sidebar .spog-table td {
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  text-align: left;
+  color: var(--text-pri);
+}
+
+#spog-sidebar .spog-table th {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-sec);
+}

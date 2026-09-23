@@ -1,0 +1,16 @@
+{
+  "//": "의사코드 저장소라 빌드 산출물이 없다. 에디터와 tsc가 전역 선언(src/globals.d.ts, src/pseudocode.d.ts)을 찾아 타입만 확인하도록 하는 용도다.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "types": [],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": false
+  },
+  "include": ["extension/**/*.ts", "extension/**/*.tsx"]
+}
